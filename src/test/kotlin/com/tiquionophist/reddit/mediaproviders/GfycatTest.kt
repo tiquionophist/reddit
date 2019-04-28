@@ -11,7 +11,7 @@ internal class GfycatTest {
 
         private val urls = UrlPermuter(host = "gfycat.com")
 
-        private val validIds = listOf("abcd", "AbCd", "abcd?1#2")
+        private val validIds = listOf("abcd", "AbCd", "ab-cd", "abcd?1#2")
         private val invalidPaths = listOf("", " ", "123", "a1b2c3", "1+1=2", "a b")
     }
 

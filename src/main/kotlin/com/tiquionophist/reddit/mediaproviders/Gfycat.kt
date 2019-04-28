@@ -6,7 +6,7 @@ import okhttp3.HttpUrl
 
 object Gfycat : RestApi(), MediaProvider {
 
-    private val hashRegex = """[a-zA-Z]+""".toRegex()
+    private val hashRegex = """[a-zA-Z\-]+""".toRegex()
 
     override val headers
         get() = mapOf("Authorization" to accessToken)
