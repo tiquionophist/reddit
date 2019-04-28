@@ -57,7 +57,7 @@ object Gfycat : RestApi(), MediaProvider {
     }
 
     override fun resolveMedia(metadata: Media.Metadata, url: HttpUrl): MediaProvider.Result {
-        val gfyId = url.pathSegments().last()
+        val gfyId = url.pathSegments().last().substringBefore('-')
 
         val response = buildGET(url = "https://api.gfycat.com/v1/gfycats/$gfyId").jsonResponse<LookupResponseModel>()
 
