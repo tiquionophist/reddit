@@ -1,4 +1,4 @@
-package com.tiquionophist.reddit
+package com.tiquionophist.reddit.network
 
 import java.io.IOException
 import java.net.http.HttpResponse

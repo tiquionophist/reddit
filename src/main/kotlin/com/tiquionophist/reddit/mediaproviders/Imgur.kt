@@ -1,6 +1,10 @@
 package com.tiquionophist.reddit.mediaproviders
 
-import com.tiquionophist.reddit.*
+import com.tiquionophist.reddit.Config
+import com.tiquionophist.reddit.Media
+import com.tiquionophist.reddit.MediaProvider
+import com.tiquionophist.reddit.network.RestApi
+import com.tiquionophist.reddit.satisfies
 import okhttp3.HttpUrl
 
 object Imgur : RestApi() {

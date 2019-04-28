@@ -1,4 +1,4 @@
-package com.tiquionophist.reddit
+package com.tiquionophist.reddit.network
 
 import com.google.gson.Gson
 import java.net.URI

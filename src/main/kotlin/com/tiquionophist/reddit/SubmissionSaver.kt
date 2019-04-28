@@ -1,5 +1,6 @@
 package com.tiquionophist.reddit
 
+import com.tiquionophist.reddit.network.DownloadBodyHandler
 import net.dean.jraw.models.Submission
 import okhttp3.HttpUrl
 import java.net.http.HttpClient

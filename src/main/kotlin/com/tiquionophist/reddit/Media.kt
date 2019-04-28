@@ -1,8 +1,12 @@
 package com.tiquionophist.reddit
 
-import com.tiquionophist.reddit.mediaproviders.*
+import com.tiquionophist.reddit.mediaproviders.DirectLink
+import com.tiquionophist.reddit.mediaproviders.Gfycat
+import com.tiquionophist.reddit.mediaproviders.IgnoredList
+import com.tiquionophist.reddit.mediaproviders.Imgur
+import com.tiquionophist.reddit.mediaproviders.Reddit
 import okhttp3.HttpUrl
-import java.util.*
+import java.util.Date
 
 sealed class Media {
 
