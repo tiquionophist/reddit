@@ -7,6 +7,7 @@ import okhttp3.HttpUrl
 
 object IgnoredList : MediaProvider {
 
+    // TODO move this list to a configuration file
     private val domains = setOf(
         "sugarcookie.com",
         "sugarcookie.xxx",
