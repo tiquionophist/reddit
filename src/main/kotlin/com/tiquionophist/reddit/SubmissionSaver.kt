@@ -138,7 +138,11 @@ class SubmissionSaver(private val root: Path) {
             }
         }
 
-        return Result.Failure(message = "Unable to fetch any of the media urls: $results")
+        return when {
+            results.size == 1 -> results.values.first()
+            results.all { it.value is Result.NotFound } -> Result.NotFound
+            else -> Result.Failure(message = "Unable to fetch any of the media urls: $results")
+        }
     }
 
     private fun saveAlbum(album: Media.Album, base: Path): Result {
