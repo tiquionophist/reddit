@@ -33,8 +33,8 @@ sealed class Media {
 interface MediaProvider {
 
     sealed class Result {
-        class Success(val media: Media) : Result()
-        class Error(val message: String, val cause: Throwable = Throwable(message)) : Result()
+        data class Success(val media: Media) : Result()
+        data class Error(val message: String, val cause: Throwable = Throwable(message)) : Result()
         object NotFound : Result()
         object Ignored : Result()
     }

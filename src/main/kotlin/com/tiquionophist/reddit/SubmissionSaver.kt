@@ -54,12 +54,12 @@ class SubmissionSaver(private val root: Path) {
     }
 
     sealed class Result {
-        class Saved(val path: Path) : Result()
+        data class Saved(val path: Path) : Result()
         object AlreadySaved : Result()
         object Ignored : Result()
         object NotFound : Result()
         object UnMatched : Result()
-        class Failure(val message: String, val error: Throwable = Throwable(message)) : Result()
+        data class Failure(val message: String, val cause: Throwable = Throwable(message)) : Result()
     }
 
     private val httpClient = HttpClient.newHttpClient()
@@ -73,7 +73,7 @@ class SubmissionSaver(private val root: Path) {
 
     private fun save(submission: Submission, base: Path): Result {
         val url = HttpUrl.parse(submission.url)
-            ?: return Result.Failure(message = "Badly formed submission URL: ${submission.url}")
+            ?: return Result.Failure("Malformed submission URL: ${submission.url}")
 
         val mediaProvider = mediaProviders.firstOrNull { it.matches(url) } ?: return Result.UnMatched
 
@@ -97,10 +97,10 @@ class SubmissionSaver(private val root: Path) {
         return when (val mediaResult = mediaProvider.resolveMedia(metadata = metadata, url = url)) {
             is MediaProvider.Result.Success ->
                 runCatching { saveMedia(media = mediaResult.media, base = base) }
-                    .getOrElse { Result.Failure(message = "Failed to save media", error = it) }
+                    .getOrElse { Result.Failure(message = "Failed to save media", cause = it) }
             is MediaProvider.Result.Error -> Result.Failure(
                 message = "Error resolving media for ${submission.url}: ${mediaResult.message}",
-                error = mediaResult.cause
+                cause = mediaResult.cause
             )
             is MediaProvider.Result.NotFound -> Result.NotFound
             is MediaProvider.Result.Ignored -> Result.Ignored
@@ -119,21 +119,17 @@ class SubmissionSaver(private val root: Path) {
             return Result.Failure(message = "File has no urls")
         }
 
-        file.urls.forEach { url ->
-            val filename = base.resolve(file.metadata.localFilename)
+        val filename = base.resolve(file.metadata.localFilename)
 
+        val results: Map<HttpUrl, Result> = file.urls.associateWith { url ->
             val request = HttpRequest.newBuilder()
-                .uri(url.uri())   // TODO catch exceptions?
+                .uri(url.uri())
                 .GET()
                 .build()
 
             // TODO consider sending async
-            // TODO don't immediately return here; try the other urls
-            // idea: pass these Result.Failure's into the returned one by adding a `failures: List<Result.Failure>?`
-            // field on Result.Failure, also use that in saveAlbum for arbitrary nesting
-            // (although the NotFound case here will be awkward)
-            return when (val result = httpClient.send(request, DownloadBodyHandler(filename)).body()) {
-                is DownloadBodyHandler.Result.Success -> Result.Saved(path = result.path)
+            when (val result = httpClient.send(request, DownloadBodyHandler(filename)).body()) {
+                is DownloadBodyHandler.Result.Success -> return Result.Saved(path = result.path)
                 is DownloadBodyHandler.Result.NotFound -> Result.NotFound
                 is DownloadBodyHandler.Result.UnknownContentType ->
                     Result.Failure("Unknown content-type: ${result.contentType}")
@@ -142,7 +138,7 @@ class SubmissionSaver(private val root: Path) {
             }
         }
 
-        return Result.Failure(message = "Unable to fetch any of the media urls: ${file.urls}")
+        return Result.Failure(message = "Unable to fetch any of the media urls: $results")
     }
 
     private fun saveAlbum(album: Media.Album, base: Path): Result {
@@ -160,7 +156,7 @@ class SubmissionSaver(private val root: Path) {
                 directoryFile.delete()
 
                 // TODO this only really works for nesting one-deep (which is fine for the moment)
-                return Result.Failure(message = "Failed album child", error = result.error)
+                return Result.Failure(message = "Failed album child", cause = result.cause)
             }
         }
 
