@@ -30,7 +30,7 @@ interface MediaProvider {
 
     sealed class Result {
         class Success(val media: Media) : Result()
-        class Error(val error: Throwable) : Result()
+        class Error(val message: String, val cause: Throwable = Throwable(message)) : Result()
         object NotFound : Result()
         object Ignored : Result()
     }

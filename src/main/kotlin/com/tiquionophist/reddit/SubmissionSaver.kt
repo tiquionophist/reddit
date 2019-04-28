@@ -98,8 +98,8 @@ class SubmissionSaver(private val root: Path) {
                 runCatching { saveMedia(media = mediaResult.media, base = base) }
                     .getOrElse { Result.Failure(message = "Failed to save media", error = it) }
             is MediaProvider.Result.Error -> Result.Failure(
-                message = "Error resolving media for ${submission.url}",
-                error = mediaResult.error
+                message = "Error resolving media for ${submission.url}: ${mediaResult.message}",
+                error = mediaResult.cause
             )
             is MediaProvider.Result.NotFound -> Result.NotFound
             is MediaProvider.Result.Ignored -> Result.Ignored

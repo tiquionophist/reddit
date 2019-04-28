@@ -11,12 +11,13 @@ object Gfycat : RestApi(), MediaProvider {
     override val headers
         get() = mapOf("Authorization" to accessToken)
 
+    private fun HttpUrl.isGfycatUrl() = topPrivateDomain() == "gfycat.com"
+
     // TODO check if the accessToken is expired (or will soon) and get a new one if so
     private var accessToken: String? = null
         get() {
             field?.let { return it }
 
-            // TODO check if the returned status code is a 401 indicating invalid credentials
             val response = buildPOST(
                 url = "https://api.gfycat.com/v1/oauth/token",
                 body = mapOf(
@@ -25,15 +26,18 @@ object Gfycat : RestApi(), MediaProvider {
                     "client_secret" to Config.getSecret("gfycat.secret")
                 ),
                 includeHeaders = false
-            )
-                .jsonResponseOrNull<AccessTokenResponseModel>()
-                ?.second
+            ).jsonResponse<AccessTokenResponseModel>()
 
-            return response?.accessToken?.takeIf { it.isNotBlank() }.also { field = it }
+            // TODO check if the returned status code is a 401 indicating invalid credentials
+            return (response as? JsonResponse.Success)
+                ?.body
+                ?.accessToken
+                ?.takeIf { it.isNotBlank() }
+                ?.also { field = it }
         }
 
     override fun matches(url: HttpUrl): Boolean {
-        if (url.topPrivateDomain() != "gfycat.com") return false
+        if (!url.isGfycatUrl()) return false
 
         // TODO this could be more elegant
         val path = url.pathSegments()
@@ -51,25 +55,20 @@ object Gfycat : RestApi(), MediaProvider {
     override fun resolveMedia(metadata: Media.Metadata, url: HttpUrl): MediaProvider.Result {
         val gfyId = url.pathSegments().last()
 
-        val (statusCode, response) = buildGET(url = "https://api.gfycat.com/v1/gfycats/$gfyId")
-            .jsonResponseOrNull<LookupResponseModel>() ?: return MediaProvider.Result.Error(NullPointerException())
+        val response = buildGET(url = "https://api.gfycat.com/v1/gfycats/$gfyId").jsonResponse<LookupResponseModel>()
 
-        return when (statusCode) {
-            200 ->
-                response.gfyItem?.let {
-                    val urls = listOfNotNull(it.webmUrl, it.mp4Url, it.gifUrl, it.mobileUrl, it.miniUrl)
-                        .filter { url -> url.isNotBlank() }
-                        .mapNotNull { url -> HttpUrl.parse(url) }
-
-                    MediaProvider.Result.Success(
-                        media = Media.File(
-                            metadata = metadata,
-                            urls = urls
-                        )
-                    )
-                } ?: MediaProvider.Result.Error(Throwable("No gfyItem returned by Gfycat API"))
-            404 -> MediaProvider.Result.NotFound
-            else -> MediaProvider.Result.Error(Throwable("Unexpected Gfycat status code: $statusCode"))
+        return when (response) {
+            is JsonResponse.Success ->
+                when (response.statusCode) {
+                    200 ->
+                        response.body.gfyItem?.let {
+                            // TODO return NotFound (or Error?) if it.urls is empty
+                            MediaProvider.Result.Success(media = Media.File(metadata = metadata, urls = it.urls))
+                        } ?: MediaProvider.Result.Error("No gfyItem returned by Gfycat API")
+                    404 -> MediaProvider.Result.NotFound
+                    else -> MediaProvider.Result.Error("Unexpected Gfycat API status code: ${response.statusCode}")
+                }
+            is JsonResponse.Error -> MediaProvider.Result.Error("Gfycat API error", response.cause)
         }
     }
 
@@ -83,5 +82,11 @@ object Gfycat : RestApi(), MediaProvider {
         val gifUrl: String?,
         val mobileUrl: String?,
         val miniUrl: String?
-    )
+    ) {
+
+        val urls: List<HttpUrl>
+            get() = listOfNotNull(webmUrl, mp4Url, gifUrl, mobileUrl, miniUrl)
+                .filter { url -> url.isNotBlank() }
+                .mapNotNull { url -> HttpUrl.parse(url) }
+    }
 }

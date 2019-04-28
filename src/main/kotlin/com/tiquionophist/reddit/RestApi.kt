@@ -1,7 +1,6 @@
 package com.tiquionophist.reddit
 
 import com.google.gson.Gson
-import com.google.gson.JsonSyntaxException
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
@@ -22,6 +21,11 @@ abstract class RestApi {
 
     protected val gson = Gson()
     protected val httpClient: HttpClient = HttpClient.newHttpClient()
+
+    sealed class JsonResponse<T> {
+        class Error<T>(val cause: Throwable) : JsonResponse<T>()
+        class Success<T>(val statusCode: Int, val body: T) : JsonResponse<T>()
+    }
 
     /**
      * Creates a GET [HttpRequest] to the given [url].
@@ -71,20 +75,19 @@ abstract class RestApi {
     }
 
     /**
-     * Sends this [HttpRequest] and parses the response body as JSON into an object of type [T], returning a pair of the
-     * response HTTP status code and the parsed body, or null if the request fails for any reason.
-     *
-     * TODO there's probably a better way to return the status code
+     * Sends this [HttpRequest] and parses the response body as JSON into an object of type [T], returning it wrapped in
+     * a [JsonResponse] object which will be a [JsonResponse.Success] if the request and JSON parsing succeeded, or
+     * [JsonResponse.Error] if either failed for any reason.
      */
-    protected inline fun <reified T> HttpRequest.jsonResponseOrNull(): Pair<Int, T>? {
-        return runCatching { httpClient.send(this, HttpResponse.BodyHandlers.ofString()) }
-            .getOrNull()
-            ?.let {
-                try {
-                    Pair(it.statusCode(), gson.fromJson(it.body(), T::class.java))
-                } catch (ex: JsonSyntaxException) {
-                    null
-                }
+    protected inline fun <reified T> HttpRequest.jsonResponse(): JsonResponse<T> {
+        return runCatching {
+            httpClient.send(this, HttpResponse.BodyHandlers.ofString()).let {
+                JsonResponse.Success(
+                    statusCode = it.statusCode(),
+                    body = gson.fromJson(it.body(), T::class.java)
+                )
             }
+        }
+            .getOrElse { JsonResponse.Error(it) }
     }
 }
