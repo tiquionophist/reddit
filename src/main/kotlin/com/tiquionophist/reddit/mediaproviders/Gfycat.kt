@@ -1,5 +1,6 @@
 package com.tiquionophist.reddit.mediaproviders
 
+import com.google.gson.annotations.SerializedName
 import com.tiquionophist.reddit.*
 import okhttp3.HttpUrl
 
@@ -28,7 +29,7 @@ object Gfycat : RestApi(), MediaProvider {
                 .jsonResponseOrNull<AccessTokenResponseModel>()
                 ?.second
 
-            return response?.access_token?.takeIf { it.isNotBlank() }.also { field = it }
+            return response?.accessToken?.takeIf { it.isNotBlank() }.also { field = it }
         }
 
     override fun matches(url: HttpUrl): Boolean {
@@ -72,7 +73,7 @@ object Gfycat : RestApi(), MediaProvider {
         }
     }
 
-    private data class AccessTokenResponseModel(val access_token: String?)
+    private data class AccessTokenResponseModel(@SerializedName("access_token") val accessToken: String?)
 
     private data class LookupResponseModel(val gfyItem: GfyModel?)
 
