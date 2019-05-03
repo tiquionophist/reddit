@@ -1,0 +1,4 @@
+# List of ignored domains, one per line
+sugarcookie.com
+sugarcookie.xxx
+harrietsugarcookie.com

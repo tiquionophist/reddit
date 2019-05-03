@@ -1,5 +1,6 @@
 package com.tiquionophist.reddit.mediaproviders
 
+import com.tiquionophist.reddit.Config
 import com.tiquionophist.reddit.Media
 import com.tiquionophist.reddit.MediaProvider
 import com.tiquionophist.reddit.satisfies
@@ -7,18 +8,11 @@ import okhttp3.HttpUrl
 
 object IgnoredList : MediaProvider {
 
-    // TODO move this list to a configuration file
-    private val domains = setOf(
-        "sugarcookie.com",
-        "sugarcookie.xxx",
-        "harrietsugarcookie.com"
-    )
-
     private val subredditNameRegex = """\w+""".toRegex()
 
     override fun matches(url: HttpUrl): Boolean {
         return when {
-            domains.contains(url.topPrivateDomain()) -> true
+            url.topPrivateDomain()?.let { Config.isIgnored(it) } == true -> true
             url.isSubreddit() -> true
             else -> false
         }
