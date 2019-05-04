@@ -1,10 +1,21 @@
 package com.tiquionophist.reddit.mediaproviders
 
+import com.tiquionophist.reddit.Config
 import com.tiquionophist.reddit.assertDoesNotMatch
 import com.tiquionophist.reddit.assertMatches
+import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 
 internal class IgnoredListTest {
+
+    companion object {
+
+        @BeforeAll
+        @JvmStatic
+        fun setup() {
+            Config.load()
+        }
+    }
 
     @Test
     fun testMatches() {
