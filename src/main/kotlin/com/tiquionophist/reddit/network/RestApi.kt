@@ -37,7 +37,7 @@ abstract class RestApi {
         includeHeaders: Boolean = true
     ): HttpRequest {
         val builder = HttpRequest.newBuilder()
-            .uri(URI(url))   // TODO catch exceptions?
+            .uri(URI(url)) // TODO catch exceptions?
             .GET()
 
         if (includeHeaders) {
@@ -64,7 +64,7 @@ abstract class RestApi {
         val jsonBody = gson.toJson(body)
 
         val builder = HttpRequest.newBuilder()
-            .uri(URI(url))   // TODO catch exceptions?
+            .uri(URI(url)) // TODO catch exceptions?
             .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
 
         if (includeHeaders) {

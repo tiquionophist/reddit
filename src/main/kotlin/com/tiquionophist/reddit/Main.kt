@@ -50,7 +50,7 @@ fun main() {
             .sorting(UserHistorySort.TOP)
             .timePeriod(TimePeriod.ALL)
             .build()
-            .take(1)    // TODO temporary limit
+            .take(1) // TODO temporary limit
             .forEachIndexed { listingIndex, listing ->
                 val submissions = listing.children
                     .filterIsInstance(Submission::class.java)

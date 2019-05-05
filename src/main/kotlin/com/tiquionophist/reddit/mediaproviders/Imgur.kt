@@ -116,7 +116,7 @@ object Imgur : RestApi() {
         val title: String?,
         val description: String?,
         val mp4: String?,
-        val gifv: String?,  // TODO remove this? (see gifv note above)
+        val gifv: String?, // TODO remove this? (see gifv note above)
         val link: String?
     ) {
 
