@@ -20,7 +20,9 @@ abstract class RestApi {
     protected open val headers: Map<String, String?> = emptyMap()
 
     protected val gson = Gson()
-    protected val httpClient: HttpClient = HttpClient.newHttpClient()
+    protected open val httpClient: HttpClient = HttpClient.newBuilder()
+        .followRedirects(HttpClient.Redirect.NORMAL)
+        .build()
 
     sealed class JsonResponse<T> {
         class Error<T>(val cause: Throwable) : JsonResponse<T>()

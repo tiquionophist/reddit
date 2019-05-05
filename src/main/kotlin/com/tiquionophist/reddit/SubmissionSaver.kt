@@ -64,18 +64,10 @@ class SubmissionSaver(private val root: Path) {
 
     private val httpClient = HttpClient.newHttpClient()
 
+    // TODO break this out into a new SubmissionSaver and rename this to MediaSaver?
     fun saveUserPost(submission: Submission): Result {
-        return save(
-            submission = submission,
-            base = root.resolve(submission.author)
-        )
-    }
-
-    private fun save(submission: Submission, base: Path): Result {
         val url = HttpUrl.parse(submission.url)
             ?: return Result.Failure("Malformed submission URL: ${submission.url}")
-
-        val mediaProvider = mediaProviders.firstOrNull { it.matches(url) } ?: return Result.UnMatched
 
         // TODO make this a Submission extension method?
         val metadata = Media.Metadata(
@@ -83,6 +75,16 @@ class SubmissionSaver(private val root: Path) {
             date = submission.created,
             title = submission.title
         )
+
+        return save(
+            url = url,
+            metadata = metadata,
+            base = root.resolve(submission.author)
+        )
+    }
+
+    private fun save(url: HttpUrl, metadata: Media.Metadata, base: Path): Result {
+        val mediaProvider = mediaProviders.firstOrNull { it.matches(url) } ?: return Result.UnMatched
 
         // TODO avoid doing this for every submission
         val baseFile = base.toFile()
@@ -99,7 +101,7 @@ class SubmissionSaver(private val root: Path) {
                 runCatching { saveMedia(media = mediaResult.media, base = base) }
                     .getOrElse { Result.Failure(message = "Failed to save media", cause = it) }
             is MediaProvider.Result.Error -> Result.Failure(
-                message = "Error resolving media for ${submission.url}: ${mediaResult.message}",
+                message = "Error resolving media for $url: ${mediaResult.message}",
                 cause = mediaResult.cause
             )
             is MediaProvider.Result.NotFound -> Result.NotFound
@@ -131,6 +133,15 @@ class SubmissionSaver(private val root: Path) {
             when (val result = httpClient.send(request, DownloadBodyHandler(filename)).body()) {
                 is DownloadBodyHandler.Result.Success -> return Result.Saved(path = result.path)
                 is DownloadBodyHandler.Result.NotFound -> Result.NotFound
+                is DownloadBodyHandler.Result.Redirect ->
+                    // TODO consider limiting the number of redirects
+                    HttpUrl.parse(result.location)?.let { redirectUrl ->
+                        save(
+                            url = redirectUrl,
+                            metadata = file.metadata,
+                            base = base
+                        )
+                    } ?: Result.Failure("Malformed redirect URL: ${result.location}")
                 is DownloadBodyHandler.Result.UnknownContentType ->
                     Result.Failure("Unknown content-type: ${result.contentType}")
                 is DownloadBodyHandler.Result.UnexpectedResponse ->

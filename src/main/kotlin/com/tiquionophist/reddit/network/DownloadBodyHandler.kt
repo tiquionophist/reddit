@@ -15,6 +15,7 @@ class DownloadBodyHandler(private val path: Path) : HttpResponse.BodyHandler<Dow
     sealed class Result {
         class Success(val path: Path) : Result()
         object NotFound : Result()
+        class Redirect(val location: String) : Result()
         class UnknownContentType(val contentType: String?) : Result()
         class UnexpectedResponse(val statusCode: Int) : Result()
     }
@@ -35,9 +36,9 @@ class DownloadBodyHandler(private val path: Path) : HttpResponse.BodyHandler<Dow
     }
 
     override fun apply(responseInfo: HttpResponse.ResponseInfo): HttpResponse.BodySubscriber<Result> {
-        // TODO flesh out status codes
-        return when (responseInfo.statusCode()) {
-            200 -> {
+        val statusCode = responseInfo.statusCode()
+        return when (HttpStatusCase.of(statusCode)) {
+            HttpStatusCase.SUCCESS -> {
                 val contentType = responseInfo.headers().firstValue("content-type").orElse(null)
                 contentType?.let {
                     contentTypes[contentType]?.let { extension ->
@@ -45,8 +46,12 @@ class DownloadBodyHandler(private val path: Path) : HttpResponse.BodyHandler<Dow
                     } ?: CompletedSubscriber(Result.UnknownContentType(contentType))
                 } ?: CompletedSubscriber(Result.UnknownContentType(null))
             }
-            302, 404 -> CompletedSubscriber(Result.NotFound)
-            else -> CompletedSubscriber(Result.UnexpectedResponse(responseInfo.statusCode()))
+            HttpStatusCase.REDIRECT -> {
+                val location = responseInfo.headers().firstValue("location").orElse(null)
+                CompletedSubscriber(Result.Redirect(location))
+            }
+            HttpStatusCase.NOT_FOUND -> CompletedSubscriber(Result.NotFound)
+            HttpStatusCase.OTHER -> CompletedSubscriber(Result.UnexpectedResponse(statusCode))
         }
     }
 

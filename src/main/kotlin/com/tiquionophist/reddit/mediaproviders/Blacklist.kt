@@ -6,7 +6,7 @@ import com.tiquionophist.reddit.MediaProvider
 import com.tiquionophist.reddit.satisfies
 import okhttp3.HttpUrl
 
-object IgnoredList : MediaProvider {
+object Blacklist : MediaProvider {
 
     private val subredditNameRegex = """\w+""".toRegex()
 
@@ -14,6 +14,7 @@ object IgnoredList : MediaProvider {
         return when {
             url.topPrivateDomain()?.let { Config.isIgnored(it) } == true -> true
             url.isSubreddit() -> true
+            url.isImgurRemovedUrl() -> true
             else -> false
         }
     }
@@ -26,5 +27,14 @@ object IgnoredList : MediaProvider {
         )
     }
 
-    override fun resolveMedia(metadata: Media.Metadata, url: HttpUrl) = MediaProvider.Result.Ignored
+    private fun HttpUrl.isImgurRemovedUrl(): Boolean {
+        return topPrivateDomain() == "imgur.com" && encodedPath() == "/removed.png"
+    }
+
+    override fun resolveMedia(metadata: Media.Metadata, url: HttpUrl): MediaProvider.Result {
+        return when {
+            url.isImgurRemovedUrl() -> MediaProvider.Result.NotFound
+            else -> MediaProvider.Result.Ignored
+        }
+    }
 }

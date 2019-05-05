@@ -1,8 +1,8 @@
 package com.tiquionophist.reddit
 
+import com.tiquionophist.reddit.mediaproviders.Blacklist
 import com.tiquionophist.reddit.mediaproviders.DirectLink
 import com.tiquionophist.reddit.mediaproviders.Gfycat
-import com.tiquionophist.reddit.mediaproviders.IgnoredList
 import com.tiquionophist.reddit.mediaproviders.Imgur
 import com.tiquionophist.reddit.mediaproviders.Reddit
 import okhttp3.HttpUrl
@@ -46,7 +46,7 @@ interface MediaProvider {
 
 // TODO move this somewhere else
 val mediaProviders: List<MediaProvider> = listOf(
-    IgnoredList,
+    Blacklist,
     DirectLink,
     Reddit,
     Imgur.Image,
