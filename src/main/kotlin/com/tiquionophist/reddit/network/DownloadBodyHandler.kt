@@ -27,7 +27,11 @@ class DownloadBodyHandler(private val path: Path) : HttpResponse.BodyHandler<Dow
             "image/png" to ".png",
             "image/gif" to ".gif",
             "video/mp4" to ".mp4",
-            "video/webm" to ".webm"
+            "video/webm" to ".webm",
+
+            // this is not a valid Content-Type but it is used by some i.reddituploads.com resources and appears to work
+            // with any extension
+            "image/*" to ".jpg"
         )
 
         private fun Path.withExtension(extension: String): Path {
