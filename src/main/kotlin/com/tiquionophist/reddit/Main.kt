@@ -38,7 +38,7 @@ fun main() {
     val root = Path.of(System.getProperty("user.home"), "Pictures", "Reddit Downloads")
     val submissionSaver = SubmissionSaver(root = root)
 
-    val results = mutableListOf<Pair<Submission, SubmissionSaver.Result>>()
+    val results = linkedMapOf<Submission, SubmissionSaver.Result>()
 
     val followedUsers = reddit.followedUsers()
     followedUsers.forEachIndexed { userIndex, username ->
@@ -59,7 +59,7 @@ fun main() {
                 println("  Got listing ${listingIndex + 1} (${submissions.size} submissions of ${listing.size} items)")
                 submissions.forEach { submission ->
                     val result = submissionSaver.saveUserPost(submission)
-                    results.add(submission to result)
+                    results[submission] = result
                     when (result) {
                         is SubmissionSaver.Result.Saved ->
                             println("    Saved ${submission.redditUrl} to ${root.relativize(result.path)}")
@@ -71,29 +71,30 @@ fun main() {
     }
 
     val ms = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start)
-    val saved = results.filter { it.second is SubmissionSaver.Result.Saved }
-    val alreadySaved = results.filter { it.second is SubmissionSaver.Result.AlreadySaved }
-    val ignored = results.filter { it.second is SubmissionSaver.Result.Ignored }
-    val missing = results.filter { it.second is SubmissionSaver.Result.NotFound }
-    val unmatched = results.filter { it.second is SubmissionSaver.Result.UnMatched }
-    val failures = results.filter { it.second is SubmissionSaver.Result.Failure }
+
+    val saved = results.filterOfTypes<Submission, SubmissionSaver.Result.Saved>()
+    val alreadySaved = results.filterOfTypes<Submission, SubmissionSaver.Result.AlreadySaved>()
+    val ignored = results.filterOfTypes<Submission, SubmissionSaver.Result.Ignored>()
+    val notFound = results.filterOfTypes<Submission, SubmissionSaver.Result.NotFound>()
+    val unmatched = results.filterOfTypes<Submission, SubmissionSaver.Result.UnMatched>()
+    val failures = results.filterOfTypes<Submission, SubmissionSaver.Result.Failure>()
 
     println()
     println("Done in %.4fs".format(ms / 1000.0))
     println("  ${saved.size + alreadySaved.size} successful: ${saved.size} new; ${alreadySaved.size} already saved")
 
     println("  ${ignored.size} ignored:")
-    ignored.forEach { println("    ${it.first.url}") }
+    ignored.forEach { println("    ${it.key.redditUrl} | ${it.key.url}") }
 
-    println("  ${missing.size} missing:")
-    missing.forEach { println("    ${it.first.redditUrl}") }
+    println("  ${notFound.size} missing:")
+    notFound.forEach { println("    ${it.key.redditUrl} | ${it.key.url}") }
 
     println("  ${unmatched.size} with no media provider:")
-    unmatched.forEach { println("    ${it.first.url}") }
+    unmatched.forEach { println("    ${it.key.redditUrl} | ${it.key.url}") }
 
     println("  ${failures.size} failed:")
     failures.forEach {
-        println("    ${it.first.redditUrl} : ${(it.second as SubmissionSaver.Result.Failure).message}")
+        println("    ${it.key.redditUrl} | ${it.key.url} : ${it.value.message}")
     }
 
     System.exit(0)

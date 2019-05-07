@@ -17,3 +17,10 @@ fun <T> List<T>.satisfies(vararg predicates: (T?) -> Boolean): Boolean {
 
     return true
 }
+
+/**
+ * Returns this [Map] filtered with keys of type [K] and values of type [V].
+ */
+inline fun <reified K, reified V> Map<*, *>.filterOfTypes(): Map<K, V> {
+    return filter { it.key is K && it.value is V } as Map<K, V>
+}
