@@ -34,10 +34,7 @@ abstract class RestApi {
      *
      * @param includeHeaders whether to include [headers] in the returned [HttpRequest]; default true
      */
-    protected fun buildGET(
-        url: String,
-        includeHeaders: Boolean = true
-    ): HttpRequest {
+    protected fun buildGET(url: String, includeHeaders: Boolean = true): HttpRequest {
         val builder = HttpRequest.newBuilder()
             .uri(URI(url)) // TODO catch exceptions?
             .GET()
@@ -58,11 +55,7 @@ abstract class RestApi {
      *
      * @param includeHeaders whether to include [headers] in the returned [HttpRequest]; default true
      */
-    protected fun buildPOST(
-        url: String,
-        body: Any,
-        includeHeaders: Boolean = true
-    ): HttpRequest {
+    protected fun buildPOST(url: String, body: Any, includeHeaders: Boolean = true): HttpRequest {
         val jsonBody = gson.toJson(body)
 
         val builder = HttpRequest.newBuilder()
