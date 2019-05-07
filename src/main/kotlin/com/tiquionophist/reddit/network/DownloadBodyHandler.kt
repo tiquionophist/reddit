@@ -9,7 +9,13 @@ import java.nio.file.StandardOpenOption
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Flow
 
-// TODO document
+/**
+ * A [HttpResponse.BodyHandler] which saves the response body to a local file, providing more options and flexibility
+ * than the standard [jdk.internal.net.http.ResponseBodyHandlers.FileDownloadBodyHandler].
+ *
+ * The downloaded file is saved to [path]; note that [path] should point to a non-existing file with no extension - this
+ * class has a mapping from known Content-Type HTTP headers to the extensions that should be appended to [path].
+ */
 class DownloadBodyHandler(private val path: Path) : HttpResponse.BodyHandler<DownloadBodyHandler.Result> {
 
     sealed class Result {
@@ -44,11 +50,9 @@ class DownloadBodyHandler(private val path: Path) : HttpResponse.BodyHandler<Dow
         return when (HttpStatusCase.of(statusCode)) {
             HttpStatusCase.SUCCESS -> {
                 val contentType = responseInfo.headers().firstValue("content-type").orElse(null)
-                contentType?.let {
-                    contentTypes[contentType]?.let { extension ->
-                        DownloadSubscriber(path.withExtension(extension))
-                    } ?: CompletedSubscriber(Result.UnknownContentType(contentType))
-                } ?: CompletedSubscriber(Result.UnknownContentType(null))
+                contentTypes[contentType]?.let { extension ->
+                    DownloadSubscriber(path.withExtension(extension))
+                } ?: CompletedSubscriber(Result.UnknownContentType(contentType))
             }
             HttpStatusCase.REDIRECT -> {
                 val location = responseInfo.headers().firstValue("location").orElse(null)
