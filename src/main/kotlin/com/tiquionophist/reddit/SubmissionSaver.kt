@@ -3,6 +3,7 @@ package com.tiquionophist.reddit
 import com.tiquionophist.reddit.network.DownloadBodyHandler
 import net.dean.jraw.models.Submission
 import okhttp3.HttpUrl
+import java.io.File
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.nio.file.Path
@@ -46,10 +47,10 @@ class SubmissionSaver(private val root: Path) {
                     .normalizeFilename()
             }
 
-        private fun Media.Metadata.existsIn(path: Path): Boolean {
+        private fun Media.Metadata.existsIn(dir: File): Boolean {
             val filename = localFilename
             // TODO maybe try to cache the list of filenames rather than doing a new query each time
-            return path.toFile().list().any { it.startsWith(filename) }
+            return dir.list().any { it.startsWith(filename) }
         }
     }
 
@@ -92,7 +93,7 @@ class SubmissionSaver(private val root: Path) {
             return Result.Failure("Unable to create directory: $base")
         }
 
-        if (metadata.existsIn(base)) {
+        if (metadata.existsIn(baseFile)) {
             return Result.AlreadySaved
         }
 
