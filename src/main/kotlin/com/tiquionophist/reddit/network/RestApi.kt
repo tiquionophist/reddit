@@ -12,15 +12,15 @@ import java.net.http.HttpResponse
 abstract class RestApi {
 
     /**
-     * Headers that should be included by default in all requests made by this [RestApi]; default empty.
+     * Headers that should be included by default in all requests made by this [RestApi].
      *
      * Each key-value pair of this map will be included as a header name-value pair if the key is not blank and the
      * value is non-null and not blank.
      */
-    protected open val headers: Map<String, String?> = emptyMap()
+    abstract val headers: Map<String, String?>
 
     protected val gson = Gson()
-    protected open val httpClient: HttpClient = HttpClient.newBuilder()
+    protected val httpClient: HttpClient = HttpClient.newBuilder()
         .followRedirects(HttpClient.Redirect.NORMAL)
         .build()
 
