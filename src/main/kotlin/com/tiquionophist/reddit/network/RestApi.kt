@@ -25,8 +25,9 @@ abstract class RestApi {
         .build()
 
     sealed class JsonResponse<T> {
+        class Success<T>(val body: T) : JsonResponse<T>()
+        class NotFound<T> : JsonResponse<T>()
         class Error<T>(val cause: Throwable) : JsonResponse<T>()
-        class Success<T>(val statusCode: Int, val body: T) : JsonResponse<T>()
     }
 
     /**
@@ -77,10 +78,11 @@ abstract class RestApi {
     protected inline fun <reified T> HttpRequest.jsonResponse(): JsonResponse<T> {
         return runCatching {
             httpClient.send(this, HttpResponse.BodyHandlers.ofString()).let {
-                JsonResponse.Success(
-                    statusCode = it.statusCode(),
-                    body = gson.fromJson(it.body(), T::class.java)
-                )
+                when (HttpStatusCase.of(it.statusCode())) {
+                    HttpStatusCase.SUCCESS -> JsonResponse.Success(gson.fromJson(it.body(), T::class.java))
+                    HttpStatusCase.NOT_FOUND -> JsonResponse.NotFound<T>()
+                    else -> JsonResponse.Error(Throwable("Unexpected HTTP response status code: ${it.statusCode()}"))
+                }
             }
         }
             .getOrElse { JsonResponse.Error(it) }

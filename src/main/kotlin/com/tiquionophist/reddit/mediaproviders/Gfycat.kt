@@ -4,7 +4,6 @@ import com.google.gson.annotations.SerializedName
 import com.tiquionophist.reddit.Config
 import com.tiquionophist.reddit.Media
 import com.tiquionophist.reddit.MediaProvider
-import com.tiquionophist.reddit.network.HttpStatusCase
 import com.tiquionophist.reddit.network.RestApi
 import com.tiquionophist.reddit.satisfies
 import okhttp3.HttpUrl
@@ -64,15 +63,11 @@ object Gfycat : RestApi(), MediaProvider {
 
         return when (response) {
             is JsonResponse.Success ->
-                when (HttpStatusCase.of(response.statusCode)) {
-                    HttpStatusCase.SUCCESS ->
-                        response.body.gfyItem?.let {
-                            // TODO return NotFound (or Error?) if it.urls is empty
-                            MediaProvider.Result.Success(media = Media.File(metadata = metadata, urls = it.urls))
-                        } ?: MediaProvider.Result.Error("No gfyItem returned by Gfycat API")
-                    HttpStatusCase.NOT_FOUND -> MediaProvider.Result.NotFound
-                    else -> MediaProvider.Result.Error("Unexpected Gfycat API status code: ${response.statusCode}")
-                }
+                response.body.gfyItem?.let {
+                    // TODO return NotFound (or Error?) if it.urls is empty
+                    MediaProvider.Result.Success(media = Media.File(metadata = metadata, urls = it.urls))
+                } ?: MediaProvider.Result.Error("No gfyItem returned by Gfycat API")
+            is JsonResponse.NotFound -> MediaProvider.Result.NotFound
             is JsonResponse.Error -> MediaProvider.Result.Error("Gfycat API error", response.cause)
         }
     }
