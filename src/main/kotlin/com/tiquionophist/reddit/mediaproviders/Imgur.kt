@@ -40,9 +40,8 @@ object Imgur : RestApi() {
                 is JsonResponse.Success ->
                     when (HttpStatusCase.of(response.statusCode)) {
                         HttpStatusCase.SUCCESS ->
-                            response.body.data?.let {
-                                // TODO return NotFound (or Error?) if it.urls is empty
-                                MediaProvider.Result.Success(media = Media.File(metadata = metadata, urls = it.urls))
+                            response.body.data?.urls?.takeIf { it.isNotEmpty() }?.let {
+                                MediaProvider.Result.Success(media = Media.File(metadata = metadata, urls = it))
                             } ?: MediaProvider.Result.Error("No data returned by Imgur API")
                         HttpStatusCase.NOT_FOUND -> MediaProvider.Result.NotFound
                         else -> MediaProvider.Result.Error("Unexpected Imgur API status code: ${response.statusCode}")
@@ -86,28 +85,29 @@ object Imgur : RestApi() {
         }
 
         private fun result(metadata: Media.Metadata, images: List<ImageModel>): MediaProvider.Result {
-            return if (images.isEmpty()) {
+            val files = images
+                .mapIndexed { index, image ->
+                    val urls = image.urls
+                    when {
+                        image.id.isNullOrBlank() -> null
+                        urls.isEmpty() -> null
+                        else -> Media.File(
+                            metadata = Media.Metadata(
+                                id = image.id,
+                                date = null,
+                                title = image.title?.takeIf { it.isNotBlank() } ?: image.description,
+                                position = index + 1
+                            ),
+                            urls = urls
+                        )
+                    }
+                }
+                .filterNotNull()
+
+            return if (files.isEmpty()) {
                 MediaProvider.Result.NotFound
             } else {
-                MediaProvider.Result.Success(
-                    media = Media.Album(
-                        metadata = metadata,
-                        children = images.mapIndexed { index, image ->
-                            image.id?.takeIf { it.isNotBlank() }?.let { id ->
-                                // TODO omit if image.urls is empty
-                                Media.File(
-                                    metadata = Media.Metadata(
-                                        id = id,
-                                        date = null,
-                                        title = image.title?.takeIf { it.isNotBlank() } ?: image.description,
-                                        position = index + 1
-                                    ),
-                                    urls = image.urls
-                                )
-                            }
-                        }.filterNotNull() // TODO return NotFound if this is empty after the filter?
-                    )
-                )
+                MediaProvider.Result.Success(media = Media.Album(metadata = metadata, children = files))
             }
         }
 
@@ -120,12 +120,11 @@ object Imgur : RestApi() {
         val title: String?,
         val description: String?,
         val mp4: String?,
-        val gifv: String?, // TODO remove this? (see gifv note above)
         val link: String?
     ) {
 
         val urls: List<HttpUrl>
-            get() = listOfNotNull(mp4, gifv, link)
+            get() = listOfNotNull(mp4, link)
                 .filter { it.isNotBlank() }
                 .mapNotNull { HttpUrl.parse(it) }
     }
