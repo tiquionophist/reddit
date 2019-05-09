@@ -77,8 +77,10 @@ object Gfycat : RestApi(), MediaProvider {
         }
     }
 
+    @Suppress("UnusedPrivateClass") // detekt false positive
     private data class AccessTokenResponseModel(@SerializedName("access_token") val accessToken: String?)
 
+    @Suppress("UnusedPrivateClass") // detekt false positive
     private data class LookupResponseModel(val gfyItem: GfyModel?)
 
     private data class GfyModel(

@@ -51,6 +51,7 @@ object Imgur : RestApi() {
             }
         }
 
+        @Suppress("UnusedPrivateClass") // detekt false positive
         private data class ResponseModel(val data: ImageModel?)
     }
 
@@ -107,6 +108,7 @@ object Imgur : RestApi() {
             }
         }
 
+        @Suppress("UnusedPrivateClass") // detekt false positive
         private data class ResponseModel(val data: AlbumModel?)
 
         private data class AlbumModel(val images: List<ImageModel>?)
