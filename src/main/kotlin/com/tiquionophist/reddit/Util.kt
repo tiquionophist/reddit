@@ -1,5 +1,7 @@
 package com.tiquionophist.reddit
 
+import java.time.Duration
+
 /**
  * Determines whether the elements of this [List] satisfy the given [predicates], in order.
  *
@@ -24,4 +26,32 @@ fun <T> List<T>.satisfies(vararg predicates: (T?) -> Boolean): Boolean {
 inline fun <reified K, reified V> Map<*, *>.filterOfTypes(): Map<K, V> {
     @Suppress("UNCHECKED_CAST")
     return filter { it.key is K && it.value is V } as Map<K, V>
+}
+
+/**
+ * Formats this [Duration] in a human-readable way.
+ */
+fun Duration.format(): String {
+    val sb = StringBuilder()
+    toDaysPart().takeIf { it > 0 }?.also {
+        sb.append(it)
+        sb.append("days ")
+    }
+
+    toHoursPart().takeIf { it > 0 }?.also {
+        sb.append(it)
+        sb.append("hr ")
+    }
+
+    toMinutesPart().takeIf { it > 0 }?.also {
+        sb.append(it)
+        sb.append("min ")
+    }
+
+    toSecondsPart().takeIf { it > 0 }?.also {
+        sb.append(it)
+        sb.append("sec ")
+    }
+
+    return sb.toString().trim()
 }

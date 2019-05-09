@@ -5,7 +5,7 @@ import net.dean.jraw.models.TimePeriod
 import net.dean.jraw.models.UserHistorySort
 import net.dean.jraw.pagination.Paginator
 import java.nio.file.Path
-import java.util.concurrent.TimeUnit
+import java.time.Duration
 
 /*
 - download all media posted by followed users
@@ -70,8 +70,6 @@ fun main() {
             }
     }
 
-    val ms = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start)
-
     val saved = results.filterOfTypes<Submission, SubmissionSaver.Result.Saved>()
     val alreadySaved = results.filterOfTypes<Submission, SubmissionSaver.Result.AlreadySaved>()
     val ignored = results.filterOfTypes<Submission, SubmissionSaver.Result.Ignored>()
@@ -80,13 +78,13 @@ fun main() {
     val failures = results.filterOfTypes<Submission, SubmissionSaver.Result.Failure>()
 
     println()
-    println("Done in %.4fs".format(ms / 1000.0))
+    println("Done in ${Duration.ofNanos(System.nanoTime() - start).format()}")
     println("  ${saved.size + alreadySaved.size} successful: ${saved.size} new; ${alreadySaved.size} already saved")
 
     println("  ${ignored.size} ignored:")
     ignored.forEach { println("    ${it.key.redditUrl} | ${it.key.url}") }
 
-    println("  ${notFound.size} missing:")
+    println("  ${notFound.size} not found:")
     notFound.forEach { println("    ${it.key.redditUrl} | ${it.key.url}") }
 
     println("  ${unmatched.size} with no media provider:")
