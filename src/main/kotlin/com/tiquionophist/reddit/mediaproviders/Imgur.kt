@@ -70,7 +70,7 @@ object Imgur : RestApi() {
         override fun resolveMedia(metadata: Media.Metadata, url: HttpUrl): MediaProvider.Result {
             val albumHash = url.pathSegments().last()
 
-            val response = buildGET("https://api.imgur.com/3/album/$albumHash").jsonResponse<ResponseModel>()
+            val response = buildGET("https://api.imgur.com/3/album/$albumHash/images").jsonResponse<ResponseModel>()
 
             return when (response) {
                 is JsonResponse.Success ->
@@ -85,14 +85,14 @@ object Imgur : RestApi() {
             }
         }
 
-        private fun result(metadata: Media.Metadata, album: AlbumModel): MediaProvider.Result {
-            return if (album.images.isNullOrEmpty()) {
+        private fun result(metadata: Media.Metadata, images: List<ImageModel>): MediaProvider.Result {
+            return if (images.isEmpty()) {
                 MediaProvider.Result.NotFound
             } else {
                 MediaProvider.Result.Success(
                     media = Media.Album(
                         metadata = metadata,
-                        children = album.images.mapIndexed { index, image ->
+                        children = images.mapIndexed { index, image ->
                             image.id?.takeIf { it.isNotBlank() }?.let { id ->
                                 // TODO omit if image.urls is empty
                                 Media.File(
@@ -112,9 +112,7 @@ object Imgur : RestApi() {
         }
 
         @Suppress("UnusedPrivateClass") // detekt false positive
-        private data class ResponseModel(val data: AlbumModel?)
-
-        private data class AlbumModel(val images: List<ImageModel>?)
+        private data class ResponseModel(val data: List<ImageModel>?)
     }
 
     private data class ImageModel(
