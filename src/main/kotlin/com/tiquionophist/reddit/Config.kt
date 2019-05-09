@@ -1,6 +1,8 @@
 package com.tiquionophist.reddit
 
 import java.io.FileInputStream
+import java.io.FileNotFoundException
+import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.Properties
@@ -13,15 +15,15 @@ object Config {
     fun load() {
         try {
             FileInputStream("secrets.properties").use { secrets.load(it) }
-        } catch (ex: Throwable) {
-            println("Failed to load secrets configuration: ${ex.message}")
+        } catch (ex: FileNotFoundException) {
+            println("Secrets configuration not found: ${ex.message}")
         }
 
         try {
             ignoredDomains = Files.readAllLines(Path.of("ignored_domains.txt"))
                 .map { it.trim() }
                 .filter { it.isNotBlank() && it.first() != '#' }
-        } catch (ex: Throwable) {
+        } catch (ex: IOException) {
             println("Failed to load ignored list: ${ex.message}")
         }
     }
