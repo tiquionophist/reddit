@@ -27,7 +27,6 @@ import java.time.Duration
 // TODO post karma thresholds
 // TODO option to filter posts by NSFW
 // TODO print how many bytes were downloaded (and set a limit)
-// TODO option to explode 1-image albums to the top level
 // TODO option to deduplicate identical url's posted multiple times
 
 fun main() {

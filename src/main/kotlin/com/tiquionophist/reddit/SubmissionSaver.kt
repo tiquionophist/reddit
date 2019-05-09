@@ -113,7 +113,17 @@ class SubmissionSaver(private val root: Path) {
     private fun saveMedia(media: Media, base: Path): Result {
         return when (media) {
             is Media.File -> saveFile(file = media, base = base)
-            is Media.Album -> saveAlbum(album = media, base = base)
+            is Media.Album ->
+                if (Config.bumpSingletons && media.children.size == 1) {
+                    val first = media.children.first()
+                    if (first is Media.File) {
+                        saveFile(file = first.copy(metadata = media.metadata), base = base)
+                    } else {
+                        saveAlbum(album = media, base = base)
+                    }
+                } else {
+                    saveAlbum(album = media, base = base)
+                }
         }
     }
 

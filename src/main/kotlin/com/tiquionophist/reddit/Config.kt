@@ -9,6 +9,13 @@ import java.util.Properties
 
 object Config {
 
+    /**
+     * Whether to place the contents of singleton albums (albums with one image) at the level above.
+     *
+     * TODO move to a config file
+     */
+    const val bumpSingletons = true
+
     private val secrets = Properties()
     private var ignoredDomains: List<String> = emptyList()
 
