@@ -77,11 +77,14 @@ class SubmissionSaver(private val root: Path) {
             title = submission.title
         )
 
-        return save(
-            url = url,
-            metadata = metadata,
-            base = root.resolve(submission.author)
-        )
+        @Suppress("ConstantConditionIf")
+        val base = if (Config.splitBySubreddit) {
+            root.resolve(submission.author).resolve(submission.subreddit)
+        } else {
+            root.resolve(submission.author)
+        }
+
+        return save(url = url, metadata = metadata, base = base)
     }
 
     private fun save(url: HttpUrl, metadata: Media.Metadata, base: Path): Result {
