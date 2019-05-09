@@ -76,35 +76,38 @@ object Imgur : RestApi() {
                 is JsonResponse.Success ->
                     when (HttpStatusCase.of(response.statusCode)) {
                         HttpStatusCase.SUCCESS ->
-                            response.body.data?.let { data ->
-                                if (data.images.isNullOrEmpty()) {
-                                    MediaProvider.Result.NotFound
-                                } else {
-                                    MediaProvider.Result.Success(
-                                        media = Media.Album(
-                                            metadata = metadata,
-                                            children = data.images.mapIndexed { index, image ->
-                                                image.id?.takeIf { it.isNotBlank() }?.let { id ->
-                                                    Media.File(
-                                                        metadata = Media.Metadata(
-                                                            id = id,
-                                                            date = null,
-                                                            title = image.title?.takeIf { it.isNotBlank() }
-                                                                ?: image.description,
-                                                            position = index + 1
-                                                        ),
-                                                        urls = image.urls
-                                                    )
-                                                }
-                                            }.filterNotNull()
-                                        )
-                                    )
-                                }
-                            } ?: MediaProvider.Result.Error("No data returned by Imgur API")
+                            response.body.data?.let { result(metadata, it) }
+                                ?: MediaProvider.Result.Error("No data returned by Imgur API")
                         HttpStatusCase.NOT_FOUND -> MediaProvider.Result.NotFound
                         else -> MediaProvider.Result.Error("Unexpected Imgur API status code: ${response.statusCode}")
                     }
                 is JsonResponse.Error -> MediaProvider.Result.Error("Imgur API error", response.cause)
+            }
+        }
+
+        private fun result(metadata: Media.Metadata, album: AlbumModel): MediaProvider.Result {
+            return if (album.images.isNullOrEmpty()) {
+                MediaProvider.Result.NotFound
+            } else {
+                MediaProvider.Result.Success(
+                    media = Media.Album(
+                        metadata = metadata,
+                        children = album.images.mapIndexed { index, image ->
+                            image.id?.takeIf { it.isNotBlank() }?.let { id ->
+                                // TODO omit if image.urls is empty
+                                Media.File(
+                                    metadata = Media.Metadata(
+                                        id = id,
+                                        date = null,
+                                        title = image.title?.takeIf { it.isNotBlank() } ?: image.description,
+                                        position = index + 1
+                                    ),
+                                    urls = image.urls
+                                )
+                            }
+                        }.filterNotNull() // TODO return NotFound if this is empty after the filter?
+                    )
+                )
             }
         }
 
