@@ -21,6 +21,7 @@ object SubmissionSaver {
     }
 
     private val httpClient = HttpClient.newHttpClient()
+    private val localLocationResolver = LocalLocationResolver()
 
     fun saveSubmission(submission: Submission, source: MediaSource): Result {
         val url = HttpUrl.parse(submission.url)
@@ -28,7 +29,7 @@ object SubmissionSaver {
 
         val metadata = submission.metadata
 
-        val local = LocalLocationResolver.resolveSubmission(metadata = metadata, source = source)
+        val local = localLocationResolver.resolveSubmission(metadata = metadata, source = source)
 
         return save(url = url, metadata = metadata, local = local)
     }
@@ -138,7 +139,7 @@ object SubmissionSaver {
         for (child in album.children) {
             val result = saveMedia(
                 media = child,
-                local = LocalLocationResolver.resolveRelative(metadata = child.metadata, base = local)
+                local = localLocationResolver.resolveRelative(metadata = child.metadata, base = local)
             )
             if (result is Result.Failure) {
                 try {

@@ -16,31 +16,22 @@ data class LocalLocation(
  * Determines the [LocalLocation] to which [Media] should be saved; this object should be the only place that filenames
  * and directories are created or modified in order to simplify consistency (i.e. to make sure the filenames don't
  * change over time).
- *
- * TODO add tests
  */
-object LocalLocationResolver {
+class LocalLocationResolver(
+    root: Path = Path.of(System.getProperty("user.home"), "Pictures", "Reddit Downloads"),
+    isWindows: Boolean = System.getProperty("os.name").startsWith("Windows")
+) {
 
-    // TODO move to a config file or similar
-    private val root = Path.of(System.getProperty("user.home"), "Pictures", "Reddit Downloads")
     private val usersDir = root.resolve("users")
     private val subredditsDir = root.resolve("subreddits")
     private val savedDir = root.resolve("saved")
     private val allDir = root.resolve("all")
 
-    private val isWindows = System.getProperty("os.name").startsWith("Windows")
     private val invalidFilenameRegex = if (isWindows) {
         """[\\/:*?"<>|]""".toRegex()
     } else {
         """[^\w \-]""".toRegex()
     }
-
-    private val whitespaceRegex = """\s+""".toRegex()
-
-    private val dateFormat = SimpleDateFormat("yyyy-MM-dd")
-
-    // TODO this might be filesystem/os-dependent
-    private const val filenameMaxLength = 250
 
     private fun String.normalizeFilename(): String {
         return this
@@ -68,7 +59,7 @@ object LocalLocationResolver {
      */
     fun resolveSubmission(metadata: Media.Metadata, source: MediaSource): LocalLocation {
         val primaryDir = when (source) {
-            MediaSource.FOLLOWED_USER -> usersDir.resolve(metadata.author)
+            MediaSource.FOLLOWED_USER -> usersDir.resolve(metadata.author.normalizeFilename())
             MediaSource.SAVED_POST -> savedDir
         }
 
@@ -77,9 +68,9 @@ object LocalLocationResolver {
 
         return LocalLocation(
             primary = primaryDir.resolve("all").resolve(filenameNoUser),
-            secondaries = listOf(
-                primaryDir.resolve(metadata.subreddit).resolve(filenameNoUser),
-                subredditsDir.resolve(metadata.subreddit).resolve(filenameWithUser),
+            secondaries = listOfNotNull(
+                metadata.subreddit?.let { primaryDir.resolve(it.normalizeFilename()).resolve(filenameNoUser) },
+                metadata.subreddit?.let { subredditsDir.resolve(it.normalizeFilename()).resolve(filenameWithUser) },
                 allDir.resolve(filenameWithUser)
             )
         )
@@ -98,5 +89,15 @@ object LocalLocationResolver {
             primary = base.primary.resolve(filename),
             secondaries = base.secondaries.map { it.resolve(filename) }
         )
+    }
+
+    companion object {
+
+        private val whitespaceRegex = """\s+""".toRegex()
+
+        private val dateFormat = SimpleDateFormat("yyyy-MM-dd")
+
+        // TODO this might be filesystem/os-dependent
+        private const val filenameMaxLength = 250
     }
 }
