@@ -1,5 +1,7 @@
 package com.tiquionophist.reddit
 
+import java.nio.file.Files
+import java.nio.file.Path
 import java.time.Duration
 
 /**
@@ -54,4 +56,24 @@ fun Duration.format(): String {
     }
 
     return sb.toString().trim()
+}
+
+/**
+ * Returns a new [Path] equal to this [Path] but with the given [extension] appended.
+ *
+ * Note that [extension] should begin with the '.' character; it is not added automatically, and if this [Path] already
+ * has an extension it is not removed before appending the new one.
+ */
+fun Path.withExtension(extension: String): Path {
+    return resolveSibling(fileName.toString() + extension)
+}
+
+/**
+ * Recursively deletes the given [path]; that is, if [path] is a directory its contents (and their contents,
+ * recursively) will be deleted first.
+ */
+fun recursiveDelete(path: Path) {
+    Files.walk(path)
+        .sorted(Comparator.reverseOrder())
+        .forEach { Files.delete(it) }
 }

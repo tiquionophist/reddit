@@ -4,7 +4,6 @@ import net.dean.jraw.models.Submission
 import net.dean.jraw.models.TimePeriod
 import net.dean.jraw.models.UserHistorySort
 import net.dean.jraw.pagination.Paginator
-import java.nio.file.Path
 import java.time.Duration
 
 /*
@@ -24,7 +23,7 @@ import java.time.Duration
 */
 
 // TODO option to split a followed user's posts by subreddit
-// TODO post karma thresholds
+// TODO post karma thresholds (tricky because it might filter out very new posts)
 // TODO option to filter posts by NSFW
 // TODO print how many bytes were downloaded (and set a limit)
 // TODO option to deduplicate identical url's posted multiple times
@@ -33,9 +32,6 @@ fun main() {
     val start = System.nanoTime()
 
     Config.load()
-
-    val root = Path.of(System.getProperty("user.home"), "Pictures", "Reddit Downloads")
-    val submissionSaver = SubmissionSaver(root = root)
 
     val results = linkedMapOf<Submission, SubmissionSaver.Result>()
 
@@ -57,11 +53,11 @@ fun main() {
 
                 println("  Got listing ${listingIndex + 1} (${submissions.size} submissions of ${listing.size} items)")
                 submissions.forEach { submission ->
-                    val result = submissionSaver.saveUserPost(submission)
+                    val result = SubmissionSaver.saveUserPost(submission)
                     results[submission] = result
                     when (result) {
                         is SubmissionSaver.Result.Saved ->
-                            println("    Saved ${submission.redditUrl} to ${root.relativize(result.path)}")
+                            println("    Saved ${submission.redditUrl} to ${result.path}")
                         is SubmissionSaver.Result.Failure ->
                             println("    [WARN] Unable to save ${submission.redditUrl} : ${result.message}")
                     }
@@ -90,9 +86,7 @@ fun main() {
     unmatched.forEach { println("    ${it.key.redditUrl} | ${it.key.url}") }
 
     println("  ${failures.size} failed:")
-    failures.forEach {
-        println("    ${it.key.redditUrl} | ${it.key.url} : ${it.value.message}")
-    }
+    failures.forEach { println("    ${it.key.redditUrl} | ${it.key.url} : ${it.value.message}") }
 
     System.exit(0)
 }

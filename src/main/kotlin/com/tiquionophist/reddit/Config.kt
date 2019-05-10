@@ -16,13 +16,6 @@ object Config {
      */
     const val bumpSingletons = true
 
-    /**
-     * Whether to put followed users' posts into separate directories based on the subreddit they were submitted to.
-     *
-     * TODO move to a config file
-     */
-    const val splitBySubreddit = true
-
     private val secrets = Properties()
     private var ignoredDomains: List<String> = emptyList()
 

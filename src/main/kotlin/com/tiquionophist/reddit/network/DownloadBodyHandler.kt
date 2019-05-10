@@ -1,5 +1,6 @@
 package com.tiquionophist.reddit.network
 
+import com.tiquionophist.reddit.withExtension
 import java.io.IOException
 import java.net.http.HttpResponse
 import java.nio.ByteBuffer
@@ -19,7 +20,7 @@ import java.util.concurrent.Flow
 class DownloadBodyHandler(private val path: Path) : HttpResponse.BodyHandler<DownloadBodyHandler.Result> {
 
     sealed class Result {
-        class Success(val path: Path) : Result()
+        class Success(val path: Path, val extension: String) : Result()
         object NotFound : Result()
         class Redirect(val location: String) : Result()
         class UnknownContentType(val contentType: String?) : Result()
@@ -39,10 +40,6 @@ class DownloadBodyHandler(private val path: Path) : HttpResponse.BodyHandler<Dow
             // with any extension
             "image/*" to ".jpg"
         )
-
-        private fun Path.withExtension(extension: String): Path {
-            return resolveSibling(fileName.toString() + extension)
-        }
     }
 
     override fun apply(responseInfo: HttpResponse.ResponseInfo): HttpResponse.BodySubscriber<Result> {
@@ -51,7 +48,7 @@ class DownloadBodyHandler(private val path: Path) : HttpResponse.BodyHandler<Dow
             HttpStatusCase.SUCCESS -> {
                 val contentType = responseInfo.headers().firstValue("content-type").orElse(null)
                 contentTypes[contentType]?.let { extension ->
-                    DownloadSubscriber(path.withExtension(extension))
+                    DownloadSubscriber(path = path.withExtension(extension), extension = extension)
                 } ?: CompletedSubscriber(Result.UnknownContentType(contentType))
             }
             HttpStatusCase.REDIRECT -> {
@@ -63,7 +60,10 @@ class DownloadBodyHandler(private val path: Path) : HttpResponse.BodyHandler<Dow
         }
     }
 
-    private class DownloadSubscriber(private val path: Path) : HttpResponse.BodySubscriber<Result> {
+    private class DownloadSubscriber(
+        private val path: Path,
+        private val extension: String
+    ) : HttpResponse.BodySubscriber<Result> {
 
         private lateinit var out: FileChannel
         private lateinit var subscription: Flow.Subscription
@@ -99,7 +99,7 @@ class DownloadBodyHandler(private val path: Path) : HttpResponse.BodyHandler<Dow
 
         override fun onComplete() {
             runCatching { out.close() }
-            future.complete(Result.Success(path))
+            future.complete(Result.Success(path = path, extension = extension))
         }
 
         override fun getBody() = future

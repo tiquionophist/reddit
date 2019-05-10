@@ -3,56 +3,13 @@ package com.tiquionophist.reddit
 import com.tiquionophist.reddit.network.DownloadBodyHandler
 import net.dean.jraw.models.Submission
 import okhttp3.HttpUrl
-import java.io.File
+import java.io.IOException
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
+import java.nio.file.Files
 import java.nio.file.Path
-import java.text.SimpleDateFormat
 
-class SubmissionSaver(private val root: Path) {
-
-    companion object {
-
-        private val isWindows = System.getProperty("os.name").startsWith("Windows")
-        private val invalidFilenameRegex = if (isWindows) {
-            """[\\/:*?"<>|]""".toRegex()
-        } else {
-            """[^\w \-]""".toRegex()
-        }
-
-        private val whitespaceRegex = """\s+""".toRegex()
-
-        private val dateFormat = SimpleDateFormat("yyyy-MM-dd")
-
-        // TODO this might be filesystem/os-dependent
-        private const val filenameMaxLength = 250
-
-        private fun String.normalizeFilename(): String {
-            return this
-                .replace(invalidFilenameRegex, "_")
-                .replace(whitespaceRegex, " ")
-                .trimEnd { it == '.' || it.isWhitespace() } // directories with trailing periods are messed up
-                .take(filenameMaxLength)
-        }
-
-        private val Media.Metadata.localFilename: String
-            get() {
-                return listOfNotNull(
-                    position?.toString(),
-                    date?.let { dateFormat.format(it) },
-                    id,
-                    title?.takeIf { it.isNotBlank() }
-                )
-                    .joinToString(separator = " - ")
-                    .normalizeFilename()
-            }
-
-        private fun Media.Metadata.existsIn(dir: File): Boolean {
-            val filename = localFilename
-            // TODO maybe try to cache the list of filenames rather than doing a new query each time
-            return dir.list().any { it.startsWith(filename) }
-        }
-    }
+object SubmissionSaver {
 
     sealed class Result {
         data class Saved(val path: Path) : Result()
@@ -77,32 +34,33 @@ class SubmissionSaver(private val root: Path) {
             title = submission.title
         )
 
-        @Suppress("ConstantConditionIf")
-        val base = if (Config.splitBySubreddit) {
-            root.resolve(submission.author).resolve(submission.subreddit)
-        } else {
-            root.resolve(submission.author)
-        }
+        val local = LocalLocationResolver.resolve(submission = submission, metadata = metadata)
 
-        return save(url = url, metadata = metadata, base = base)
+        return save(url = url, metadata = metadata, local = local)
     }
 
-    private fun save(url: HttpUrl, metadata: Media.Metadata, base: Path): Result {
+    private fun save(url: HttpUrl, metadata: Media.Metadata, local: LocalLocation): Result {
         val mediaProvider = mediaProviders.firstOrNull { it.matches(url) } ?: return Result.UnMatched
 
         // TODO avoid doing this for every submission
-        val baseFile = base.toFile()
-        if (!baseFile.isDirectory && !baseFile.mkdirs()) {
-            return Result.Failure("Unable to create directory: $base")
+        try {
+            Files.createDirectories(local.primary.parent)
+        } catch (ex: IOException) {
+            return Result.Failure(message = "Unable to create directory: ${local.primary.parent}", cause = ex)
         }
 
-        if (metadata.existsIn(baseFile)) {
+        val filename = local.primary.fileName.toString()
+
+        // since we don't know the file's extension, we check whether any of the files in the directory start with the
+        // desired filename; this is very inefficient and potentially finds false-positives
+        // TODO maybe try to cache the list of filenames rather than doing a new query each time
+        if (Files.list(local.primary.parent).anyMatch { it.fileName.toString().startsWith(filename) }) {
             return Result.AlreadySaved
         }
 
         return when (val mediaResult = mediaProvider.resolveMedia(metadata = metadata, url = url)) {
             is MediaProvider.Result.Success ->
-                runCatching { saveMedia(media = mediaResult.media, base = base) }
+                runCatching { saveMedia(media = mediaResult.media, local = local) }
                     .getOrElse { Result.Failure(message = "Failed to save media", cause = it) }
             is MediaProvider.Result.Error -> Result.Failure(
                 message = "Error resolving media for $url: ${mediaResult.message}",
@@ -113,29 +71,27 @@ class SubmissionSaver(private val root: Path) {
         }
     }
 
-    private fun saveMedia(media: Media, base: Path): Result {
+    private fun saveMedia(media: Media, local: LocalLocation): Result {
         return when (media) {
-            is Media.File -> saveFile(file = media, base = base)
+            is Media.File -> saveFile(file = media, local = local)
             is Media.Album ->
                 if (Config.bumpSingletons && media.children.size == 1) {
                     val first = media.children.first()
                     if (first is Media.File) {
-                        saveFile(file = first.copy(metadata = media.metadata), base = base)
+                        saveFile(file = first.copy(metadata = media.metadata), local = local)
                     } else {
-                        saveAlbum(album = media, base = base)
+                        saveAlbum(album = media, local = local)
                     }
                 } else {
-                    saveAlbum(album = media, base = base)
+                    saveAlbum(album = media, local = local)
                 }
         }
     }
 
-    private fun saveFile(file: Media.File, base: Path): Result {
+    private fun saveFile(file: Media.File, local: LocalLocation): Result {
         if (file.urls.isEmpty()) {
             return Result.Failure(message = "File has no urls")
         }
-
-        val filename = base.resolve(file.metadata.localFilename)
 
         val results: Map<HttpUrl, Result> = file.urls.associateWith { url ->
             val request = HttpRequest.newBuilder()
@@ -144,8 +100,48 @@ class SubmissionSaver(private val root: Path) {
                 .build()
 
             // TODO consider sending async
-            when (val result = httpClient.send(request, DownloadBodyHandler(filename)).body()) {
-                is DownloadBodyHandler.Result.Success -> return Result.Saved(path = result.path)
+            when (val result = httpClient.send(request, DownloadBodyHandler(local.primary)).body()) {
+                is DownloadBodyHandler.Result.Success -> {
+                    local.secondaries.forEach { path ->
+                        // TODO avoid doing this for every submission
+                        try {
+                            Files.createDirectories(path.parent)
+                        } catch (ex: IOException) {
+                            try {
+                                Files.deleteIfExists(local.primary)
+                                local.secondaries.forEach { Files.deleteIfExists(it) }
+                            } catch (ex: IOException) {
+                                println(
+                                    "[ERROR] Failed to clean up partially saved file, disk state is corrupted: $local"
+                                )
+                            }
+
+                            return Result.Failure(message = "Unable to create directory: ${path.parent}", cause = ex)
+                        }
+
+                        val pathWithExtension = path.withExtension(result.extension)
+
+                        try {
+                            Files.createLink(pathWithExtension, result.path)
+                        } catch (ex: IOException) {
+                            try {
+                                Files.deleteIfExists(local.primary)
+                                local.secondaries.forEach { Files.deleteIfExists(it) }
+                            } catch (ex: IOException) {
+                                println(
+                                    "[ERROR] Failed to clean up partially saved file, disk state is corrupted: $local"
+                                )
+                            }
+
+                            return Result.Failure(
+                                message = "Unable to create link: $pathWithExtension -> ${result.path}",
+                                cause = ex
+                            )
+                        }
+                    }
+
+                    return Result.Saved(path = result.path)
+                }
                 is DownloadBodyHandler.Result.NotFound -> Result.NotFound
                 is DownloadBodyHandler.Result.Redirect ->
                     // TODO consider limiting the number of redirects
@@ -153,13 +149,13 @@ class SubmissionSaver(private val root: Path) {
                         save(
                             url = redirectUrl,
                             metadata = file.metadata,
-                            base = base
+                            local = local
                         )
-                    } ?: Result.Failure("Malformed redirect URL: ${result.location}")
+                    } ?: Result.Failure(message = "Malformed redirect URL: ${result.location}")
                 is DownloadBodyHandler.Result.UnknownContentType ->
-                    Result.Failure("Unknown content-type: ${result.contentType}")
+                    Result.Failure(message = "Unknown content-type: ${result.contentType}")
                 is DownloadBodyHandler.Result.UnexpectedResponse ->
-                    Result.Failure("Unexpected HTTP response status code: ${result.statusCode}")
+                    Result.Failure(message = "Unexpected HTTP response status code: ${result.statusCode}")
             }
         }
 
@@ -170,25 +166,31 @@ class SubmissionSaver(private val root: Path) {
         }
     }
 
-    private fun saveAlbum(album: Media.Album, base: Path): Result {
-        val directory = base.resolve(album.metadata.localFilename)
-        val directoryFile = directory.toFile()
-
-        if (!directoryFile.mkdirs()) {
-            return Result.Failure("Unable to create directory: $directory")
+    private fun saveAlbum(album: Media.Album, local: LocalLocation): Result {
+        try {
+            Files.createDirectories(local.primary)
+        } catch (ex: IOException) {
+            return Result.Failure(message = "Unable to create directory: ${local.primary}", cause = ex)
         }
 
         for (child in album.children) {
-            val result = saveMedia(media = child, base = directory)
+            val result = saveMedia(
+                media = child,
+                local = LocalLocationResolver.resolveRelative(metadata = child.metadata, base = local)
+            )
             if (result is Result.Failure) {
-                // TODO warn or pass back failures somehow - disk state corrupted if this fails!
-                directoryFile.delete()
+                try {
+                    recursiveDelete(local.primary)
+                    local.secondaries.forEach { recursiveDelete(it) }
+                } catch (ex: IOException) {
+                    println("[ERROR] Failed to clean up partially saved album, disk state is corrupted: $local")
+                }
 
                 // TODO this only really works for nesting one-deep (which is fine for the moment)
                 return Result.Failure(message = "Failed album child", cause = result.cause)
             }
         }
 
-        return Result.Saved(path = directory)
+        return Result.Saved(path = local.primary)
     }
 }
