@@ -19,7 +19,7 @@ internal class BlacklistTest {
             Config.load()
         }
 
-        private val metadata = Media.Metadata(id = "id", date = null, title = null)
+        private val metadata = Media.Metadata(id = "id", author = "author", date = null, title = null)
 
         private val ignoredUrls = setOf(
             "https://sugarcookie.com/some/path",

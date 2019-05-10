@@ -22,13 +22,15 @@ object SubmissionSaver {
 
     private val httpClient = HttpClient.newHttpClient()
 
-    fun saveSubmission(submission: Submission, type: SubmissionType): Result {
+    fun saveSubmission(submission: Submission, source: MediaSource): Result {
         val url = HttpUrl.parse(submission.url)
             ?: return Result.Failure("Malformed submission URL: ${submission.url}")
 
-        val local = LocalLocationResolver.resolveSubmission(submission = submission, type = type)
+        val metadata = submission.metadata
 
-        return save(url = url, metadata = submission.metadata, local = local)
+        val local = LocalLocationResolver.resolveSubmission(metadata = metadata, source = source)
+
+        return save(url = url, metadata = metadata, local = local)
     }
 
     private fun save(url: HttpUrl, metadata: Media.Metadata, local: LocalLocation): Result {

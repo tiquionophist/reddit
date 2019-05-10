@@ -1,6 +1,5 @@
 package com.tiquionophist.reddit
 
-import net.dean.jraw.models.Submission
 import java.nio.file.Path
 import java.text.SimpleDateFormat
 
@@ -65,27 +64,22 @@ object LocalLocationResolver {
     }
 
     /**
-     * Determines the [LocalLocation] of the given [submission] of the given [type].
+     * Determines the [LocalLocation] for the given [metadata] with the given [source].
      */
-    fun resolveSubmission(submission: Submission, type: SubmissionType): LocalLocation {
-        // TODO consider moving author/subreddit to Metadata so we can avoid referencing Submission directly here
-        val author = submission.author
-        val subreddit = submission.subreddit
-        val metadata = submission.metadata
-
-        val primaryDir = when (type) {
-            SubmissionType.FOLLOWED_USER -> usersDir.resolve(author)
-            SubmissionType.SAVED_POST -> savedDir
+    fun resolveSubmission(metadata: Media.Metadata, source: MediaSource): LocalLocation {
+        val primaryDir = when (source) {
+            MediaSource.FOLLOWED_USER -> usersDir.resolve(metadata.author)
+            MediaSource.SAVED_POST -> savedDir
         }
 
         val filenameNoUser = metadata.filename()
-        val filenameWithUser = metadata.filename(author = author)
+        val filenameWithUser = metadata.filename(author = metadata.author)
 
         return LocalLocation(
             primary = primaryDir.resolve("all").resolve(filenameNoUser),
             secondaries = listOf(
-                primaryDir.resolve(subreddit).resolve(filenameNoUser),
-                subredditsDir.resolve(subreddit).resolve(filenameWithUser),
+                primaryDir.resolve(metadata.subreddit).resolve(filenameNoUser),
+                subredditsDir.resolve(metadata.subreddit).resolve(filenameWithUser),
                 allDir.resolve(filenameWithUser)
             )
         )

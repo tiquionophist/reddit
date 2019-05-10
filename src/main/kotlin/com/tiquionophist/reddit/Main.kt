@@ -27,7 +27,7 @@ fun main() {
     val notMatched = linkedMapOf<Submission, SubmissionSaver.Result.NotMatched>()
     val failures = linkedMapOf<Submission, SubmissionSaver.Result.Failure>()
 
-    fun Iterable<Listing<*>>.save(type: SubmissionType) {
+    fun Iterable<Listing<*>>.save(source: MediaSource) {
         forEachIndexed { listingIndex, listing ->
             val submissions = listing.children
                 .filterIsInstance(Submission::class.java)
@@ -35,7 +35,7 @@ fun main() {
 
             println("  Got listing ${listingIndex + 1} (${submissions.size} submissions of ${listing.size} items)")
             submissions.forEach { submission ->
-                val result = SubmissionSaver.saveSubmission(submission = submission, type = type)
+                val result = SubmissionSaver.saveSubmission(submission = submission, source = source)
                 when (result) {
                     is SubmissionSaver.Result.Saved -> {
                         saved[submission] = result
@@ -59,7 +59,7 @@ fun main() {
         .history("saved")
         .limit(Paginator.RECOMMENDED_MAX_LIMIT)
         .build()
-        .save(SubmissionType.SAVED_POST)
+        .save(MediaSource.SAVED_POST)
 
     val followedUsers = reddit.followedUsers()
     followedUsers.forEachIndexed { userIndex, username ->
@@ -72,7 +72,7 @@ fun main() {
             .build()
             .first() // TODO temporary limit (not using take() since it eagerly loads the next listing as well)
             .let { listOf(it) }
-            .save(SubmissionType.FOLLOWED_USER)
+            .save(MediaSource.FOLLOWED_USER)
     }
 
     println()

@@ -12,8 +12,10 @@ sealed class Media {
 
     data class Metadata(
         val id: String,
+        val author: String?,
         val date: Date?,
         val title: String?,
+        val subreddit: String? = null,
         val position: Int? = null
     )
 

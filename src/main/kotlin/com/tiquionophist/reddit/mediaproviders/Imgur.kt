@@ -85,8 +85,10 @@ object Imgur : RestApi() {
                         else -> Media.File(
                             metadata = Media.Metadata(
                                 id = image.id,
+                                author = metadata.author,
                                 date = null,
                                 title = image.title?.takeIf { it.isNotBlank() } ?: image.description,
+                                subreddit = metadata.subreddit,
                                 position = index + 1
                             ),
                             urls = urls
