@@ -58,7 +58,8 @@ fun main() {
             .sorting(UserHistorySort.TOP)
             .timePeriod(TimePeriod.ALL)
             .build()
-            .take(1) // TODO temporary limit
+            .first() // TODO temporary limit (not using take() since it eagerly loads the next listing as well)
+            .let { listOf(it) }
             .save(SubmissionType.FOLLOWED_USER)
     }
 
