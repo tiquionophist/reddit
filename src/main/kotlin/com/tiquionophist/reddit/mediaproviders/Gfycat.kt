@@ -64,8 +64,12 @@ object Gfycat : RestApi(), MediaProvider {
         return when (response) {
             is JsonResponse.Success ->
                 response.body.gfyItem?.let {
-                    // TODO return NotFound (or Error?) if it.urls is empty
-                    MediaProvider.Result.Success(media = Media.File(metadata = metadata, urls = it.urls))
+                    // for some reason, Gfycat sometimes returns all empty strings for files that 404
+                    if (it.urls.isEmpty()) {
+                        MediaProvider.Result.NotFound
+                    } else {
+                        MediaProvider.Result.Success(media = Media.File(metadata = metadata, urls = it.urls))
+                    }
                 } ?: MediaProvider.Result.Error("No gfyItem returned by Gfycat API")
             is JsonResponse.NotFound -> MediaProvider.Result.NotFound
             is JsonResponse.Error -> MediaProvider.Result.Error("Gfycat API error", response.cause)
