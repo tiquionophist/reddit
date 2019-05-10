@@ -14,7 +14,7 @@ enum class HttpStatusCase {
             return when (code) {
                 in 200 until 300 -> SUCCESS
                 in 300 until 400 -> REDIRECT
-                404, 410 -> NOT_FOUND
+                403, 404, 410 -> NOT_FOUND
                 else -> OTHER
             }
         }
