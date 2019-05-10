@@ -7,26 +7,13 @@ import net.dean.jraw.models.UserHistorySort
 import net.dean.jraw.pagination.Paginator
 import java.time.Duration
 
-/*
-- download all media posted by followed users
-- supported platforms:
-    - i.reddit
-    - v.reddit
-    - imgur (direct images, image posts, album posts)
-    - gfycat
-    - more? (pornhub, youtube, eroshare, erome, twitter, vidble)
-- organize local files by user -> album -> post
-    - want to include metadata (post permalink, post name/imgur title, date, etc), how to do this?
-- keep a local db of what posts have been downloaded / last query time / etc?
-- also go through comments for follow-up images?
-- also go through self posts for links? or just download them as text files?
-- download posts saved by user (sorted by subreddit)
-*/
-
 // TODO post karma thresholds (tricky because it might filter out very new posts)
-// TODO option to filter posts by NSFW
+// TODO option to filter posts by SFW/NSFW
 // TODO print how many bytes were downloaded (and set a limit)
 // TODO option to deduplicate identical url's posted multiple times
+// TODO add media providers: v.redd.it, pornhub, youtube, eroshare, erome, twitter, vidble, tumblr, more?
+// TODO go through comments for follow-up images, sources, etc
+// TODO add CI for tests, detekt, etc
 
 fun main() {
     val start = System.nanoTime()
@@ -65,7 +52,6 @@ fun main() {
     val followedUsers = reddit.followedUsers()
     followedUsers.forEachIndexed { userIndex, username ->
         println("Downloading posts by $username [${userIndex + 1} / ${followedUsers.size}]")
-
         reddit.user(username)
             .history("submitted")
             .limit(Paginator.RECOMMENDED_MAX_LIMIT)

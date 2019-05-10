@@ -67,7 +67,7 @@ object SubmissionSaver {
         return when (media) {
             is Media.File -> saveFile(file = media, local = local)
             is Media.Album ->
-                if (Config.bumpSingletons && media.children.size == 1) {
+                if (media.children.size == 1) {
                     val first = media.children.first()
                     if (first is Media.File) {
                         saveFile(file = first.copy(metadata = media.metadata), local = local)
@@ -94,43 +94,10 @@ object SubmissionSaver {
             // TODO consider sending async
             when (val result = httpClient.send(request, DownloadBodyHandler(local.primary)).body()) {
                 is DownloadBodyHandler.Result.Success -> {
-                    local.secondaries.forEach { path ->
-                        // TODO avoid doing this for every submission
-                        try {
-                            Files.createDirectories(path.parent)
-                        } catch (ex: IOException) {
-                            try {
-                                Files.deleteIfExists(local.primary)
-                                local.secondaries.forEach { Files.deleteIfExists(it) }
-                            } catch (ex: IOException) {
-                                println("[ERROR] Disk state corrupted for $local")
-                            }
-
-                            return Result.Failure(message = "Unable to create directory: ${path.parent}", cause = ex)
-                        }
-
-                        val pathWithExtension = path.withExtension(result.extension)
-
-                        // the link might already exist if the same post was downloaded from multiple places, e.g. both
-                        // a followed user and a saved post, or if the user deleted the primary file but not secondaries
-                        // TODO this is an opportunity to consolidate hard links to save disk space
-                        if (!Files.exists(pathWithExtension)) {
-                            try {
-                                Files.createLink(pathWithExtension, result.path)
-                            } catch (ex: IOException) {
-                                try {
-                                    Files.deleteIfExists(local.primary)
-                                    local.secondaries.forEach { Files.deleteIfExists(it) }
-                                } catch (ex: IOException) {
-                                    println("[ERROR] Disk state corrupted for $local")
-                                }
-
-                                return Result.Failure(
-                                    message = "Unable to create link: $pathWithExtension -> ${result.path}",
-                                    cause = ex
-                                )
-                            }
-                        }
+                    try {
+                        linkSecondaries(result, local)
+                    } catch (ex: IOException) {
+                        return Result.Failure(message = "Unable to create link to ${result.path}", cause = ex)
                     }
 
                     return Result.Saved(path = result.path)
@@ -185,5 +152,43 @@ object SubmissionSaver {
         }
 
         return Result.Saved(path = local.primary)
+    }
+
+    private fun linkSecondaries(result: DownloadBodyHandler.Result.Success, local: LocalLocation) {
+        local.secondaries.forEach { path ->
+            // TODO avoid attempting to create the directory for every submission
+            try {
+                Files.createDirectories(path.parent)
+            } catch (ex: IOException) {
+                try {
+                    Files.deleteIfExists(local.primary)
+                    local.secondaries.forEach { Files.deleteIfExists(it) }
+                } catch (ex: IOException) {
+                    println("[ERROR] Unable to clean up partially saved file, disk state corrupted for $local")
+                }
+
+                throw ex
+            }
+
+            val pathWithExtension = path.withExtension(result.extension)
+
+            // the link might already exist if the same post was downloaded from multiple places, e.g. both a followed
+            // user and a saved post, or if the user deleted the primary file but not secondaries
+            // TODO this is an opportunity to consolidate hard links to save disk space
+            if (!Files.exists(pathWithExtension)) {
+                try {
+                    Files.createLink(pathWithExtension, result.path)
+                } catch (ex: IOException) {
+                    try {
+                        Files.deleteIfExists(local.primary)
+                        local.secondaries.forEach { Files.deleteIfExists(it) }
+                    } catch (ex: IOException) {
+                        println("[ERROR] Unable to clean up partially saved file, disk state corrupted for $local")
+                    }
+
+                    throw ex
+                }
+            }
+        }
     }
 }

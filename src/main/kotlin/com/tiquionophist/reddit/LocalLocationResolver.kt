@@ -17,6 +17,8 @@ data class LocalLocation(
  * Determines the [LocalLocation] to which [Media] should be saved; this object should be the only place that filenames
  * and directories are created or modified in order to simplify consistency (i.e. to make sure the filenames don't
  * change over time).
+ *
+ * TODO add tests
  */
 object LocalLocationResolver {
 
