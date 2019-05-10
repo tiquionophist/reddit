@@ -37,20 +37,23 @@ object SubmissionSaver {
     private fun save(url: HttpUrl, metadata: Media.Metadata, local: LocalLocation): Result {
         val mediaProvider = mediaProviders.firstOrNull { it.matches(url) } ?: return Result.NotMatched
 
-        // TODO avoid doing this for every submission
-        try {
-            Files.createDirectories(local.primary.parent)
-        } catch (ex: IOException) {
-            return Result.Failure(message = "Unable to create directory: ${local.primary.parent}", cause = ex)
-        }
+        val parent = local.primary.parent
+        if (Files.isDirectory(parent)) {
+            val filename = local.primary.fileName.toString()
 
-        val filename = local.primary.fileName.toString()
-
-        // since we don't know the file's extension, we check whether any of the files in the directory start with the
-        // desired filename; this is very inefficient and potentially finds false-positives
-        // TODO maybe try to cache the list of filenames rather than doing a new query each time
-        if (Files.list(local.primary.parent).anyMatch { it.fileName.toString().startsWith(filename) }) {
-            return Result.AlreadySaved
+            // check whether the file already exists with any of the potential extensions (or no extension for
+            // directories); this is a bit hacky but much faster than queries the parent's entire contents
+            DownloadBodyHandler.extensions.plus("").forEach { extension ->
+                if (Files.exists(parent.resolve(filename + extension))) {
+                    return Result.AlreadySaved
+                }
+            }
+        } else {
+            try {
+                Files.createDirectories(local.primary.parent)
+            } catch (ex: IOException) {
+                return Result.Failure(message = "Unable to create directory: ${local.primary.parent}", cause = ex)
+            }
         }
 
         return when (val mediaResult = mediaProvider.resolveMedia(metadata = metadata, url = url)) {

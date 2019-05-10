@@ -40,6 +40,8 @@ class DownloadBodyHandler(private val path: Path) : HttpResponse.BodyHandler<Dow
             // with any extension
             "image/*" to ".jpg"
         )
+
+        val extensions = contentTypes.values.toSet()
     }
 
     override fun apply(responseInfo: HttpResponse.ResponseInfo): HttpResponse.BodySubscriber<Result> {
