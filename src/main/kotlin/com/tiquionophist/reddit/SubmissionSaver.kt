@@ -22,21 +22,13 @@ object SubmissionSaver {
 
     private val httpClient = HttpClient.newHttpClient()
 
-    // TODO break this out into a new SubmissionSaver and rename this to MediaSaver?
-    fun saveUserPost(submission: Submission): Result {
+    fun saveSubmission(submission: Submission, type: SubmissionType): Result {
         val url = HttpUrl.parse(submission.url)
             ?: return Result.Failure("Malformed submission URL: ${submission.url}")
 
-        // TODO make this a Submission extension method?
-        val metadata = Media.Metadata(
-            id = submission.id,
-            date = submission.created,
-            title = submission.title
-        )
+        val local = LocalLocationResolver.resolveSubmission(submission = submission, type = type)
 
-        val local = LocalLocationResolver.resolve(submission = submission, metadata = metadata)
-
-        return save(url = url, metadata = metadata, local = local)
+        return save(url = url, metadata = submission.metadata, local = local)
     }
 
     private fun save(url: HttpUrl, metadata: Media.Metadata, local: LocalLocation): Result {
@@ -111,9 +103,7 @@ object SubmissionSaver {
                                 Files.deleteIfExists(local.primary)
                                 local.secondaries.forEach { Files.deleteIfExists(it) }
                             } catch (ex: IOException) {
-                                println(
-                                    "[ERROR] Failed to clean up partially saved file, disk state is corrupted: $local"
-                                )
+                                println("[ERROR] Disk state corrupted for $local")
                             }
 
                             return Result.Failure(message = "Unable to create directory: ${path.parent}", cause = ex)
@@ -121,22 +111,25 @@ object SubmissionSaver {
 
                         val pathWithExtension = path.withExtension(result.extension)
 
-                        try {
-                            Files.createLink(pathWithExtension, result.path)
-                        } catch (ex: IOException) {
+                        // the link might already exist if the same post was downloaded from multiple places, e.g. both
+                        // a followed user and a saved post, or if the user deleted the primary file but not secondaries
+                        // TODO this is an opportunity to consolidate hard links to save disk space
+                        if (!Files.exists(pathWithExtension)) {
                             try {
-                                Files.deleteIfExists(local.primary)
-                                local.secondaries.forEach { Files.deleteIfExists(it) }
+                                Files.createLink(pathWithExtension, result.path)
                             } catch (ex: IOException) {
-                                println(
-                                    "[ERROR] Failed to clean up partially saved file, disk state is corrupted: $local"
+                                try {
+                                    Files.deleteIfExists(local.primary)
+                                    local.secondaries.forEach { Files.deleteIfExists(it) }
+                                } catch (ex: IOException) {
+                                    println("[ERROR] Disk state corrupted for $local")
+                                }
+
+                                return Result.Failure(
+                                    message = "Unable to create link: $pathWithExtension -> ${result.path}",
+                                    cause = ex
                                 )
                             }
-
-                            return Result.Failure(
-                                message = "Unable to create link: $pathWithExtension -> ${result.path}",
-                                cause = ex
-                            )
                         }
                     }
 

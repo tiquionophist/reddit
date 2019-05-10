@@ -1,5 +1,6 @@
 package com.tiquionophist.reddit
 
+import net.dean.jraw.models.Listing
 import net.dean.jraw.models.Submission
 import net.dean.jraw.models.TimePeriod
 import net.dean.jraw.models.UserHistorySort
@@ -22,7 +23,6 @@ import java.time.Duration
 - download posts saved by user (sorted by subreddit)
 */
 
-// TODO option to split a followed user's posts by subreddit
 // TODO post karma thresholds (tricky because it might filter out very new posts)
 // TODO option to filter posts by NSFW
 // TODO print how many bytes were downloaded (and set a limit)
@@ -35,6 +35,33 @@ fun main() {
 
     val results = linkedMapOf<Submission, SubmissionSaver.Result>()
 
+    fun Iterable<Listing<*>>.save(type: SubmissionType) {
+        forEachIndexed { listingIndex, listing ->
+            val submissions = listing.children
+                .filterIsInstance(Submission::class.java)
+                .filter { !it.isStickied && !it.isSelfPost }
+
+            println("  Got listing ${listingIndex + 1} (${submissions.size} submissions of ${listing.size} items)")
+            submissions.forEach { submission ->
+                val result = SubmissionSaver.saveSubmission(submission = submission, type = type)
+                results[submission] = result
+                when (result) {
+                    is SubmissionSaver.Result.Saved ->
+                        println("    Saved ${submission.redditUrl} to ${result.path}")
+                    is SubmissionSaver.Result.Failure ->
+                        println("    [WARN] Unable to save ${submission.redditUrl} : ${result.message}")
+                }
+            }
+        }
+    }
+
+    println("Downloading saved posts")
+    reddit.me()
+        .history("saved")
+        .limit(Paginator.RECOMMENDED_MAX_LIMIT)
+        .build()
+        .save(SubmissionType.SAVED_POST)
+
     val followedUsers = reddit.followedUsers()
     followedUsers.forEachIndexed { userIndex, username ->
         println("Downloading posts by $username [${userIndex + 1} / ${followedUsers.size}]")
@@ -46,23 +73,7 @@ fun main() {
             .timePeriod(TimePeriod.ALL)
             .build()
             .take(1) // TODO temporary limit
-            .forEachIndexed { listingIndex, listing ->
-                val submissions = listing.children
-                    .filterIsInstance(Submission::class.java)
-                    .filter { !it.isStickied && !it.isSelfPost }
-
-                println("  Got listing ${listingIndex + 1} (${submissions.size} submissions of ${listing.size} items)")
-                submissions.forEach { submission ->
-                    val result = SubmissionSaver.saveUserPost(submission)
-                    results[submission] = result
-                    when (result) {
-                        is SubmissionSaver.Result.Saved ->
-                            println("    Saved ${submission.redditUrl} to ${result.path}")
-                        is SubmissionSaver.Result.Failure ->
-                            println("    [WARN] Unable to save ${submission.redditUrl} : ${result.message}")
-                    }
-                }
-            }
+            .save(SubmissionType.FOLLOWED_USER)
     }
 
     val saved = results.filterOfTypes<Submission, SubmissionSaver.Result.Saved>()

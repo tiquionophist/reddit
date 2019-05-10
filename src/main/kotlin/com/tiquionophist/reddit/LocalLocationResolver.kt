@@ -24,6 +24,7 @@ object LocalLocationResolver {
     private val root = Path.of(System.getProperty("user.home"), "Pictures", "Reddit Downloads")
     private val usersDir = root.resolve("users")
     private val subredditsDir = root.resolve("subreddits")
+    private val savedDir = root.resolve("saved")
     private val allDir = root.resolve("all")
 
     private val isWindows = System.getProperty("os.name").startsWith("Windows")
@@ -49,11 +50,11 @@ object LocalLocationResolver {
             .take(filenameMaxLength)
     }
 
-    private fun Media.Metadata.filename(user: String? = null): String {
+    private fun Media.Metadata.filename(author: String? = null): String {
         return listOfNotNull(
             position?.toString(),
             date?.let { dateFormat.format(it) },
-            user,
+            author,
             id,
             title?.takeIf { it.isNotBlank() }
         )
@@ -62,23 +63,27 @@ object LocalLocationResolver {
     }
 
     /**
-     * Determines the [LocalLocation] to which the [submission] with the given [metadata] should be saved.
+     * Determines the [LocalLocation] of the given [submission] of the given [type].
      */
-    fun resolve(submission: Submission, metadata: Media.Metadata): LocalLocation {
-        val user = submission.author
+    fun resolveSubmission(submission: Submission, type: SubmissionType): LocalLocation {
+        // TODO consider moving author/subreddit to Metadata so we can avoid referencing Submission directly here
+        val author = submission.author
         val subreddit = submission.subreddit
+        val metadata = submission.metadata
 
-        val userDir = usersDir.resolve(user)
-        val subredditDir = subredditsDir.resolve(subreddit)
+        val primaryDir = when (type) {
+            SubmissionType.FOLLOWED_USER -> usersDir.resolve(author)
+            SubmissionType.SAVED_POST -> savedDir
+        }
 
         val filenameNoUser = metadata.filename()
-        val filenameWithUser = metadata.filename(user = user)
+        val filenameWithUser = metadata.filename(author = author)
 
         return LocalLocation(
-            primary = userDir.resolve("all").resolve(filenameNoUser),
+            primary = primaryDir.resolve("all").resolve(filenameNoUser),
             secondaries = listOf(
-                userDir.resolve(subreddit).resolve(filenameNoUser),
-                subredditDir.resolve(filenameWithUser),
+                primaryDir.resolve(subreddit).resolve(filenameNoUser),
+                subredditsDir.resolve(subreddit).resolve(filenameWithUser),
                 allDir.resolve(filenameWithUser)
             )
         )

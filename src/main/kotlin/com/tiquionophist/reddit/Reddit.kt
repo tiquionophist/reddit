@@ -50,5 +50,8 @@ fun RedditClient.followedUsers(): List<String> {
         .map { it.name.substring(2) }
 }
 
+val Submission.metadata
+    get() = Media.Metadata(id = id, date = created, title = title)
+
 val Submission.redditUrl
     get() = "https://reddit.com$permalink"
