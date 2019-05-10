@@ -20,7 +20,12 @@ fun main() {
 
     Config.load()
 
-    val results = linkedMapOf<Submission, SubmissionSaver.Result>()
+    val saved = linkedMapOf<Submission, SubmissionSaver.Result.Saved>()
+    val alreadySaved = linkedMapOf<Submission, SubmissionSaver.Result.AlreadySaved>()
+    val ignored = linkedMapOf<Submission, SubmissionSaver.Result.Ignored>()
+    val notFound = linkedMapOf<Submission, SubmissionSaver.Result.NotFound>()
+    val notMatched = linkedMapOf<Submission, SubmissionSaver.Result.NotMatched>()
+    val failures = linkedMapOf<Submission, SubmissionSaver.Result.Failure>()
 
     fun Iterable<Listing<*>>.save(type: SubmissionType) {
         forEachIndexed { listingIndex, listing ->
@@ -31,12 +36,19 @@ fun main() {
             println("  Got listing ${listingIndex + 1} (${submissions.size} submissions of ${listing.size} items)")
             submissions.forEach { submission ->
                 val result = SubmissionSaver.saveSubmission(submission = submission, type = type)
-                results[submission] = result
                 when (result) {
-                    is SubmissionSaver.Result.Saved ->
+                    is SubmissionSaver.Result.Saved -> {
+                        saved[submission] = result
                         println("    Saved ${submission.redditUrl} to ${result.path}")
-                    is SubmissionSaver.Result.Failure ->
+                    }
+                    is SubmissionSaver.Result.AlreadySaved -> alreadySaved[submission] = result
+                    is SubmissionSaver.Result.Ignored -> ignored[submission] = result
+                    is SubmissionSaver.Result.NotFound -> notFound[submission] = result
+                    is SubmissionSaver.Result.NotMatched -> notMatched[submission] = result
+                    is SubmissionSaver.Result.Failure -> {
+                        failures[submission] = result
                         println("    [WARN] Unable to save ${submission.redditUrl} : ${result.message}")
+                    }
                 }
             }
         }
@@ -63,13 +75,6 @@ fun main() {
             .save(SubmissionType.FOLLOWED_USER)
     }
 
-    val saved = results.filterOfTypes<Submission, SubmissionSaver.Result.Saved>()
-    val alreadySaved = results.filterOfTypes<Submission, SubmissionSaver.Result.AlreadySaved>()
-    val ignored = results.filterOfTypes<Submission, SubmissionSaver.Result.Ignored>()
-    val notFound = results.filterOfTypes<Submission, SubmissionSaver.Result.NotFound>()
-    val unmatched = results.filterOfTypes<Submission, SubmissionSaver.Result.UnMatched>()
-    val failures = results.filterOfTypes<Submission, SubmissionSaver.Result.Failure>()
-
     println()
     println("Done in ${Duration.ofNanos(System.nanoTime() - start).format()}")
     println("  ${saved.size + alreadySaved.size} successful: ${saved.size} new; ${alreadySaved.size} already saved")
@@ -80,8 +85,8 @@ fun main() {
     println("  ${notFound.size} not found:")
     notFound.forEach { println("    ${it.key.redditUrl} | ${it.key.url}") }
 
-    println("  ${unmatched.size} with no media provider:")
-    unmatched.forEach { println("    ${it.key.redditUrl} | ${it.key.url}") }
+    println("  ${notMatched.size} with no media provider:")
+    notMatched.forEach { println("    ${it.key.redditUrl} | ${it.key.url}") }
 
     println("  ${failures.size} failed:")
     failures.forEach { println("    ${it.key.redditUrl} | ${it.key.url} : ${it.value.message}") }

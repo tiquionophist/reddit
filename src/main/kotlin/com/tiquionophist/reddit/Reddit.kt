@@ -10,26 +10,22 @@ import net.dean.jraw.pagination.Paginator
 
 // TODO maybe just use the REST api directly since that's what we're doing with Gfycat and Imgur?
 
-private val userAgent by lazy {
+val reddit by lazy {
     // TODO move app name and version to config file
-    UserAgent(
+    val userAgent = UserAgent(
         platform = "jraw-bot",
         appId = "com.tiquionophist.reddit",
         version = "0.1",
         redditUsername = Config.getSecret("reddit.user.username").orEmpty()
     )
-}
 
-private val credentials by lazy {
-    Credentials.script(
+    val credentials = Credentials.script(
         username = Config.getSecret("reddit.user.username").orEmpty(),
         password = Config.getSecret("reddit.user.password").orEmpty(),
         clientId = Config.getSecret("reddit.client.id").orEmpty(),
         clientSecret = Config.getSecret("reddit.client.secret").orEmpty()
     )
-}
 
-val reddit by lazy {
     OAuthHelper.automatic(
         http = OkHttpNetworkAdapter(userAgent),
         creds = credentials

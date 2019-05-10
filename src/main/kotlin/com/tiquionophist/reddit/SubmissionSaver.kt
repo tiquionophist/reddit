@@ -16,7 +16,7 @@ object SubmissionSaver {
         object AlreadySaved : Result()
         object Ignored : Result()
         object NotFound : Result()
-        object UnMatched : Result()
+        object NotMatched : Result()
         data class Failure(val message: String, val cause: Throwable = Throwable(message)) : Result()
     }
 
@@ -32,7 +32,7 @@ object SubmissionSaver {
     }
 
     private fun save(url: HttpUrl, metadata: Media.Metadata, local: LocalLocation): Result {
-        val mediaProvider = mediaProviders.firstOrNull { it.matches(url) } ?: return Result.UnMatched
+        val mediaProvider = mediaProviders.firstOrNull { it.matches(url) } ?: return Result.NotMatched
 
         // TODO avoid doing this for every submission
         try {
