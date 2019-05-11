@@ -14,6 +14,7 @@ import java.time.Duration
 // TODO add media providers: v.redd.it, pornhub, youtube, eroshare, erome, twitter, vidble, tumblr, more?
 // TODO go through comments for follow-up images, sources, etc
 // TODO add CI for tests, detekt, etc
+// TODO better logging (log files, levels, channels)
 
 fun main() {
     val start = System.nanoTime()
