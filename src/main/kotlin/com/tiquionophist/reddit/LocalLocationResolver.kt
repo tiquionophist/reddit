@@ -21,7 +21,6 @@ class LocalLocationResolver(
     root: Path = Path.of(System.getProperty("user.home"), "Pictures", "Reddit Downloads"),
     isWindows: Boolean = System.getProperty("os.name").startsWith("Windows")
 ) {
-
     private val usersDir = root.resolve("users")
     private val subredditsDir = root.resolve("subreddits")
     private val savedDir = root.resolve("saved")
@@ -92,7 +91,6 @@ class LocalLocationResolver(
     }
 
     companion object {
-
         private val whitespaceRegex = """\s+""".toRegex()
 
         private val dateFormat = SimpleDateFormat("yyyy-MM-dd")

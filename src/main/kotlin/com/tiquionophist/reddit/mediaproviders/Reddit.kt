@@ -5,7 +5,6 @@ import com.tiquionophist.reddit.MediaProvider
 import okhttp3.HttpUrl
 
 object Reddit : MediaProvider {
-
     private val hosts = setOf("i.reddituploads.com")
 
     override fun matches(url: HttpUrl) = hosts.contains(url.host())

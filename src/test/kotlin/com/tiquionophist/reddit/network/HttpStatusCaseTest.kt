@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
 internal class HttpStatusCaseTest {
-
     @Test
     fun testCodes() {
         testCase(HttpStatusCase.SUCCESS, 200, 201, 202)
@@ -13,7 +12,9 @@ internal class HttpStatusCaseTest {
         testCase(HttpStatusCase.OTHER, 400, 401, 500, 503, 100, 101)
     }
 
-    private fun testCase(case: HttpStatusCase, vararg codes: Int) {
-        codes.forEach { assertEquals(case, HttpStatusCase.of(it)) }
+    companion object {
+        private fun testCase(case: HttpStatusCase, vararg codes: Int) {
+            codes.forEach { assertEquals(case, HttpStatusCase.of(it)) }
+        }
     }
 }

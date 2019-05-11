@@ -6,16 +6,6 @@ import java.nio.file.Path
 import java.util.Calendar
 
 internal class LocalLocationResolverTest {
-
-    private object Fixtures {
-
-        val root: Path = Path.of("root", "path")
-
-        fun resolve(first: String, vararg more: String): Path {
-            return root.resolve(Path.of(first, *more))
-        }
-    }
-
     // TODO tests for non-windows (with a different filename regex)
     private val localLocationResolver = LocalLocationResolver(root = Fixtures.root, isWindows = true)
 
@@ -139,5 +129,13 @@ internal class LocalLocationResolverTest {
             ).toSet(),
             savedPost.secondaries.toSet()
         )
+    }
+
+    private object Fixtures {
+        val root: Path = Path.of("root", "path")
+
+        fun resolve(first: String, vararg more: String): Path {
+            return root.resolve(Path.of(first, *more))
+        }
     }
 }

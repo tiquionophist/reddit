@@ -8,7 +8,6 @@ import com.tiquionophist.reddit.satisfies
 import okhttp3.HttpUrl
 
 object Imgur : RestApi() {
-
     override val headers by lazy {
         mapOf("Authorization" to "Client-ID ${Config.getSecret("imgur.id")}")
     }
@@ -20,7 +19,6 @@ object Imgur : RestApi() {
     private fun HttpUrl.isImgurUrl() = topPrivateDomain() == "imgur.com"
 
     object Image : MediaProvider {
-
         override fun matches(url: HttpUrl): Boolean {
             if (!url.isImgurUrl()) return false
 
@@ -50,7 +48,6 @@ object Imgur : RestApi() {
     }
 
     object Album : MediaProvider {
-
         override fun matches(url: HttpUrl): Boolean {
             if (!url.isImgurUrl()) return false
 
@@ -115,7 +112,6 @@ object Imgur : RestApi() {
         val mp4: String?,
         val link: String?
     ) {
-
         val urls: List<HttpUrl>
             get() = listOfNotNull(mp4, link)
                 .filter { it.isNotBlank() }

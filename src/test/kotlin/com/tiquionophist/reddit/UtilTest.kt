@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Test
 import java.time.Duration
 
 internal class UtilTest {
-
     @Test
     fun testListSatisfies() {
         assert(

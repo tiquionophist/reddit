@@ -9,13 +9,10 @@ import com.tiquionophist.reddit.satisfies
 import okhttp3.HttpUrl
 
 object Gfycat : RestApi(), MediaProvider {
-
     private val hashRegex = """[a-zA-Z\-]+""".toRegex()
 
     override val headers
         get() = mapOf("Authorization" to accessToken)
-
-    private fun HttpUrl.isGfycatUrl() = topPrivateDomain() == "gfycat.com"
 
     // TODO check if the accessToken is expired (or will soon) and get a new one if so
     private var accessToken: String? = null
@@ -39,6 +36,8 @@ object Gfycat : RestApi(), MediaProvider {
                 ?.takeIf { it.isNotBlank() }
                 ?.also { field = it }
         }
+
+    private fun HttpUrl.isGfycatUrl() = topPrivateDomain() == "gfycat.com"
 
     override fun matches(url: HttpUrl): Boolean {
         if (!url.isGfycatUrl()) return false
@@ -89,7 +88,6 @@ object Gfycat : RestApi(), MediaProvider {
         val mobileUrl: String?,
         val miniUrl: String?
     ) {
-
         val urls: List<HttpUrl>
             get() = listOfNotNull(webmUrl, mp4Url, gifUrl, mobileUrl, miniUrl)
                 .filter { url -> url.isNotBlank() }

@@ -10,7 +10,6 @@ import java.nio.file.Files
 import java.nio.file.Path
 
 object SubmissionSaver {
-
     sealed class Result {
         data class Saved(val path: Path, val bytes: Long) : Result()
         object AlreadySaved : Result()

@@ -10,7 +10,6 @@ import java.net.http.HttpResponse
  * A simple wrapper around a REST API.
  */
 abstract class RestApi {
-
     /**
      * Headers that should be included by default in all requests made by this [RestApi].
      *

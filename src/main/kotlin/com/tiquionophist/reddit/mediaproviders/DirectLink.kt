@@ -5,7 +5,6 @@ import com.tiquionophist.reddit.MediaProvider
 import okhttp3.HttpUrl
 
 object DirectLink : MediaProvider {
-
     private val pathRegex = """.+\.(jpg|jpeg|png|gif|mp4|webm)""".toRegex()
 
     override fun matches(url: HttpUrl) = pathRegex.matches(url.encodedPath())

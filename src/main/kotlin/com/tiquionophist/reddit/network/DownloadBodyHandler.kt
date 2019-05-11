@@ -18,30 +18,12 @@ import java.util.concurrent.Flow
  * class has a mapping from known Content-Type HTTP headers to the extensions that should be appended to [path].
  */
 class DownloadBodyHandler(private val path: Path) : HttpResponse.BodyHandler<DownloadBodyHandler.Result> {
-
     sealed class Result {
         class Success(val path: Path, val extension: String, val bytes: Long) : Result()
         object NotFound : Result()
         class Redirect(val location: String) : Result()
         class UnknownContentType(val contentType: String?) : Result()
         class UnexpectedResponse(val statusCode: Int) : Result()
-    }
-
-    companion object {
-
-        private val contentTypes = mapOf(
-            "image/jpeg" to ".jpg",
-            "image/png" to ".png",
-            "image/gif" to ".gif",
-            "video/mp4" to ".mp4",
-            "video/webm" to ".webm",
-
-            // this is not a valid Content-Type but it is used by some i.reddituploads.com resources and appears to work
-            // with any extension
-            "image/*" to ".jpg"
-        )
-
-        val extensions = contentTypes.values.toSet()
     }
 
     override fun apply(responseInfo: HttpResponse.ResponseInfo): HttpResponse.BodySubscriber<Result> {
@@ -66,7 +48,6 @@ class DownloadBodyHandler(private val path: Path) : HttpResponse.BodyHandler<Dow
         private val path: Path,
         private val extension: String
     ) : HttpResponse.BodySubscriber<Result> {
-
         private lateinit var out: FileChannel
         private lateinit var subscription: Flow.Subscription
         private val future = CompletableFuture<Result>()
@@ -109,13 +90,28 @@ class DownloadBodyHandler(private val path: Path) : HttpResponse.BodyHandler<Dow
     }
 
     private class CompletedSubscriber(result: Result) : HttpResponse.BodySubscriber<Result> {
-
         private val future: CompletableFuture<Result> = CompletableFuture.completedFuture(result)
 
-        override fun onSubscribe(subscription: Flow.Subscription) = Unit
-        override fun onNext(item: List<ByteBuffer>) = Unit
-        override fun onError(throwable: Throwable) = Unit
-        override fun onComplete() = Unit
+        override fun onSubscribe(subscription: Flow.Subscription) {}
+        override fun onNext(item: List<ByteBuffer>) {}
+        override fun onError(throwable: Throwable) {}
+        override fun onComplete() {}
         override fun getBody() = future
+    }
+
+    companion object {
+        private val contentTypes = mapOf(
+            "image/jpeg" to ".jpg",
+            "image/png" to ".png",
+            "image/gif" to ".gif",
+            "video/mp4" to ".mp4",
+            "video/webm" to ".webm",
+
+            // this is not a valid Content-Type but it is used by some i.reddituploads.com resources and appears to work
+            // with any extension
+            "image/*" to ".jpg"
+        )
+
+        val extensions = contentTypes.values.toSet()
     }
 }

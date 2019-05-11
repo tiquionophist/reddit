@@ -6,15 +6,6 @@ import com.tiquionophist.reddit.assertMatches
 import org.junit.jupiter.api.Test
 
 internal class ImgurTest {
-
-    companion object {
-
-        private val urls = UrlPermuter(host = "imgur.com", subdomains = listOf("m.", "i."))
-
-        private val validIds = listOf("abcd", "AbCd", "123", "a1b2c3", "a1B2c3", "abcd?1#2", "abcd.gifv")
-        private val invalidPaths = listOf("", " ", "1+1=2", "a b", "abcd.png", "abcd.mp4")
-    }
-
     @Test
     fun testImageMatches() {
         urls.permute(validIds).forEach { Imgur.Image.assertMatches(it) }
@@ -27,5 +18,12 @@ internal class ImgurTest {
         urls.permute(validIds).forEach { Imgur.Album.assertDoesNotMatch(it) }
         urls.permute(validIds.map { "a/$it" }).forEach { Imgur.Album.assertMatches(it) }
         urls.permute(invalidPaths).forEach { Imgur.Album.assertDoesNotMatch(it) }
+    }
+
+    companion object {
+        private val urls = UrlPermuter(host = "imgur.com", subdomains = listOf("m.", "i."))
+
+        private val validIds = listOf("abcd", "AbCd", "123", "a1b2c3", "a1B2c3", "abcd?1#2", "abcd.gifv")
+        private val invalidPaths = listOf("", " ", "1+1=2", "a b", "abcd.png", "abcd.mp4")
     }
 }

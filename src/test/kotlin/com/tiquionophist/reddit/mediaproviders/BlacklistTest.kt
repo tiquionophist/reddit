@@ -10,34 +10,6 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 
 internal class BlacklistTest {
-
-    companion object {
-
-        @BeforeAll
-        @JvmStatic
-        fun setup() {
-            Config.load()
-        }
-
-        private val metadata = Media.Metadata(id = "id", author = "author", date = null, title = null)
-
-        private val ignoredUrls = setOf(
-            "https://sugarcookie.com/some/path",
-            "https://sugarcookie.xxx/some/path",
-            "https://harrietsugarcookie.com/some/path",
-            "https://subdomain.sugarcookie.com/some/path",
-            "https://reddit.com/r/all",
-            "http://reddit.com/r/all",
-            "https://www.reddit.com/r/all",
-            "https://reddit.com/r/some_subRedditName"
-        )
-
-        private val notFoundUrls = setOf(
-            "http://i.imgur.com/removed.png",
-            "https://i.imgur.com/removed.png"
-        )
-    }
-
     @Test
     fun testMatches() {
         ignoredUrls.forEach { Blacklist.assertMatches(it) }
@@ -65,6 +37,32 @@ internal class BlacklistTest {
         notFoundUrls.forEach { urlString ->
             val url = requireNotNull(HttpUrl.parse(urlString))
             assert(Blacklist.resolveMedia(metadata, url) == MediaProvider.Result.NotFound)
+        }
+    }
+
+    companion object {
+        private val metadata = Media.Metadata(id = "id", author = "author", date = null, title = null)
+
+        private val ignoredUrls = setOf(
+            "https://sugarcookie.com/some/path",
+            "https://sugarcookie.xxx/some/path",
+            "https://harrietsugarcookie.com/some/path",
+            "https://subdomain.sugarcookie.com/some/path",
+            "https://reddit.com/r/all",
+            "http://reddit.com/r/all",
+            "https://www.reddit.com/r/all",
+            "https://reddit.com/r/some_subRedditName"
+        )
+
+        private val notFoundUrls = setOf(
+            "http://i.imgur.com/removed.png",
+            "https://i.imgur.com/removed.png"
+        )
+
+        @BeforeAll
+        @JvmStatic
+        fun setup() {
+            Config.load()
         }
     }
 }

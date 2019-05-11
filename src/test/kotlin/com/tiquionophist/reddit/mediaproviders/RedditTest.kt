@@ -6,12 +6,6 @@ import com.tiquionophist.reddit.assertMatches
 import org.junit.jupiter.api.Test
 
 internal class RedditTest {
-
-    companion object {
-
-        private val urls = UrlPermuter(host = "i.reddituploads.com", allowWww = false)
-    }
-
     @Test
     fun testMatches() {
         urls.permute(listOf("", "any1hing?1#2")).forEach { Reddit.assertMatches(it) }
@@ -22,5 +16,9 @@ internal class RedditTest {
         Reddit.assertDoesNotMatch("https://reddit.com/u/abc")
         Reddit.assertDoesNotMatch("https://external-preview.redd.it/abc")
         Reddit.assertDoesNotMatch("http://v.redd.it/abc")
+    }
+
+    companion object {
+        private val urls = UrlPermuter(host = "i.reddituploads.com", allowWww = false)
     }
 }

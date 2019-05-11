@@ -11,7 +11,6 @@ class UrlPermuter(
     allowWww: Boolean = true,
     allowTrailingSlash: Boolean = true
 ) {
-
     private val protocols = if (allowHttp) listOf("https://", "http://") else listOf("https://")
     private val subdomains = subdomains.plus(if (allowWww) listOf("", "www.") else listOf(""))
     private val suffixes = if (allowTrailingSlash) listOf("", "/") else listOf("")

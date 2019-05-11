@@ -8,7 +8,6 @@ import java.nio.file.Path
 import java.util.Properties
 
 object Config {
-
     private val secrets = Properties()
     private var ignoredDomains: List<String> = emptyList()
 

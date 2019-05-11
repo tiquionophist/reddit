@@ -6,9 +6,13 @@ import com.tiquionophist.reddit.assertMatches
 import org.junit.jupiter.api.Test
 
 internal class DirectLinkTest {
+    @Test
+    fun testMatches() {
+        urls.permute(validPaths).forEach { DirectLink.assertMatches(it) }
+        urls.permute(invalidPaths).forEach { DirectLink.assertDoesNotMatch(it) }
+    }
 
     companion object {
-
         private val urls = UrlPermuter(host = "any.website", allowTrailingSlash = false)
 
         private val validPaths = listOf(
@@ -20,6 +24,7 @@ internal class DirectLinkTest {
             "abcd.webm",
             "abcd.png?1#2"
         )
+
         private val invalidPaths = listOf(
             "",
             " ",
@@ -31,11 +36,5 @@ internal class DirectLinkTest {
             "1+1=2",
             "a b"
         )
-    }
-
-    @Test
-    fun testMatches() {
-        urls.permute(validPaths).forEach { DirectLink.assertMatches(it) }
-        urls.permute(invalidPaths).forEach { DirectLink.assertDoesNotMatch(it) }
     }
 }
