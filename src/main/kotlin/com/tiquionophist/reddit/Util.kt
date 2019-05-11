@@ -10,7 +10,7 @@ import java.time.Duration
  * If there are more elements in this [List] than [predicates], false is returned.
  * If there are more [predicates] than elements in this [List], the remaining [predicates] are tested against null.
  *
- * TODO this doesn't work for List<T?>
+ * TODO this doesn't work for List<T?> (but there's no need for that yet)
  */
 fun <T> List<T>.satisfies(vararg predicates: (T?) -> Boolean): Boolean {
     if (size > predicates.size) return false
@@ -23,17 +23,11 @@ fun <T> List<T>.satisfies(vararg predicates: (T?) -> Boolean): Boolean {
 }
 
 /**
- * Returns this [Map] filtered with keys of type [K] and values of type [V].
- */
-inline fun <reified K, reified V> Map<*, *>.filterOfTypes(): Map<K, V> {
-    @Suppress("UNCHECKED_CAST")
-    return filter { it.key is K && it.value is V } as Map<K, V>
-}
-
-/**
  * Formats this [Duration] in a human-readable way.
  */
 fun Duration.format(): String {
+    if (toSeconds() < 1) return "<1sec"
+
     val sb = StringBuilder()
     toDaysPart().takeIf { it > 0 }?.also {
         sb.append(it)
@@ -76,4 +70,17 @@ fun recursiveDelete(path: Path) {
     Files.walk(path)
         .sorted(Comparator.reverseOrder())
         .forEach { Files.delete(it) }
+}
+
+private const val BYTE_SCALE = 1024
+private val BYTE_SCALE_LOG = Math.log(BYTE_SCALE.toDouble())
+
+/**
+ * Creates a human-readable description of the given number of bytes, e.g. "42 B" or "7.4 MB"; base-2.
+ */
+fun formatByteSize(bytes: Long): String {
+    if (bytes < BYTE_SCALE) return "$bytes B"
+    val exp = (Math.log(bytes.toDouble()) / BYTE_SCALE_LOG).toInt()
+    val prefix = "KMGTPE"[exp - 1]
+    return String.format("%.1f %sB", bytes / Math.pow(BYTE_SCALE.toDouble(), exp.toDouble()), prefix)
 }

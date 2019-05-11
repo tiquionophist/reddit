@@ -12,7 +12,7 @@ import java.nio.file.Path
 object SubmissionSaver {
 
     sealed class Result {
-        data class Saved(val path: Path) : Result()
+        data class Saved(val path: Path, val bytes: Long) : Result()
         object AlreadySaved : Result()
         object Ignored : Result()
         object NotFound : Result()
@@ -106,7 +106,7 @@ object SubmissionSaver {
                         return Result.Failure(message = "Unable to create link to ${result.path}", cause = ex)
                     }
 
-                    return Result.Saved(path = result.path)
+                    return Result.Saved(path = result.path, bytes = result.bytes)
                 }
                 is DownloadBodyHandler.Result.NotFound -> Result.NotFound
                 is DownloadBodyHandler.Result.Redirect ->
@@ -139,25 +139,29 @@ object SubmissionSaver {
             return Result.Failure(message = "Unable to create directory: ${local.primary}", cause = ex)
         }
 
+        var totalBytes: Long = 0
         for (child in album.children) {
             val result = saveMedia(
                 media = child,
                 local = localLocationResolver.resolveRelative(metadata = child.metadata, base = local)
             )
-            if (result is Result.Failure) {
-                try {
-                    recursiveDelete(local.primary)
-                    local.secondaries.forEach { recursiveDelete(it) }
-                } catch (ex: IOException) {
-                    println("[ERROR] Failed to clean up partially saved album, disk state is corrupted: $local")
-                }
+            when (result) {
+                is Result.Saved -> totalBytes += result.bytes
+                is Result.Failure -> {
+                    try {
+                        recursiveDelete(local.primary)
+                        local.secondaries.forEach { recursiveDelete(it) }
+                    } catch (ex: IOException) {
+                        println("[ERROR] Failed to clean up partially saved album, disk state is corrupted: $local")
+                    }
 
-                // TODO this only really works for nesting one-deep (which is fine for the moment)
-                return Result.Failure(message = "Failed album child", cause = result.cause)
+                    // TODO this only really works for nesting one-deep (which is fine for the moment)
+                    return Result.Failure(message = "Failed album child", cause = result.cause)
+                }
             }
         }
 
-        return Result.Saved(path = local.primary)
+        return Result.Saved(path = local.primary, bytes = totalBytes)
     }
 
     private fun linkSecondaries(result: DownloadBodyHandler.Result.Success, local: LocalLocation) {

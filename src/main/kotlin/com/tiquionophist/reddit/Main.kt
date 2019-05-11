@@ -9,7 +9,6 @@ import java.time.Duration
 
 // TODO post karma thresholds (tricky because it might filter out very new posts)
 // TODO option to filter posts by SFW/NSFW
-// TODO print how many bytes were downloaded (and set a limit)
 // TODO option to deduplicate identical url's posted multiple times
 // TODO add media providers: v.redd.it, pornhub, youtube, eroshare, erome, twitter, vidble, tumblr, more?
 // TODO go through comments for follow-up images, sources, etc
@@ -76,9 +75,14 @@ fun main() {
             .save(MediaSource.FOLLOWED_USER)
     }
 
+    val bytes = saved.values.map { it.bytes }.sum()
+
     println()
     println("Done in ${Duration.ofNanos(System.nanoTime() - start).format()}")
-    println("  ${saved.size + alreadySaved.size} successful: ${saved.size} new; ${alreadySaved.size} already saved")
+    print("  ${saved.size + alreadySaved.size} successful: ")
+    print("${saved.size} new (${formatByteSize(bytes)}); ")
+    print("${alreadySaved.size} already saved")
+    println()
 
     println("  ${ignored.size} ignored:")
     ignored.forEach { println("    ${it.key.redditUrl} | ${it.key.url}") }

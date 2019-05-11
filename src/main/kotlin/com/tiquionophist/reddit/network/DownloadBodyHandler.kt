@@ -20,7 +20,7 @@ import java.util.concurrent.Flow
 class DownloadBodyHandler(private val path: Path) : HttpResponse.BodyHandler<DownloadBodyHandler.Result> {
 
     sealed class Result {
-        class Success(val path: Path, val extension: String) : Result()
+        class Success(val path: Path, val extension: String, val bytes: Long) : Result()
         object NotFound : Result()
         class Redirect(val location: String) : Result()
         class UnknownContentType(val contentType: String?) : Result()
@@ -70,6 +70,7 @@ class DownloadBodyHandler(private val path: Path) : HttpResponse.BodyHandler<Dow
         private lateinit var out: FileChannel
         private lateinit var subscription: Flow.Subscription
         private val future = CompletableFuture<Result>()
+        private var totalBytes: Long = 0
 
         override fun onSubscribe(subscription: Flow.Subscription) {
             this.subscription = subscription
@@ -86,7 +87,7 @@ class DownloadBodyHandler(private val path: Path) : HttpResponse.BodyHandler<Dow
 
         override fun onNext(item: List<ByteBuffer>) {
             try {
-                out.write(item.toTypedArray())
+                totalBytes += out.write(item.toTypedArray())
             } catch (ex: IOException) {
                 runCatching { out.close() }
                 subscription.cancel()
@@ -101,7 +102,7 @@ class DownloadBodyHandler(private val path: Path) : HttpResponse.BodyHandler<Dow
 
         override fun onComplete() {
             runCatching { out.close() }
-            future.complete(Result.Success(path = path, extension = extension))
+            future.complete(Result.Success(path = path, extension = extension, bytes = totalBytes))
         }
 
         override fun getBody() = future
