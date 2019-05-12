@@ -52,6 +52,10 @@ object Gfycat : RestApi(), MediaProvider {
             { it == "detail" },
             { hashRegex.matches(it.orEmpty()) },
             { it.isNullOrEmpty() }
+        ) || path.satisfies(
+            { !it.isNullOrEmpty() },
+            { hashRegex.matches(it.orEmpty()) },
+            { it.isNullOrEmpty() }
         )
     }
 
