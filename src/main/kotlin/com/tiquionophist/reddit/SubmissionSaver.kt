@@ -72,7 +72,7 @@ object SubmissionSaver {
         return when (media) {
             is Media.File -> saveFile(file = media, local = local)
             is Media.Album ->
-                if (media.children.size == 1) {
+                if (Config.explodeSingletonAlbums && media.children.size == 1) {
                     val first = media.children.first()
                     if (first is Media.File) {
                         saveFile(file = first.copy(metadata = media.metadata), local = local)
