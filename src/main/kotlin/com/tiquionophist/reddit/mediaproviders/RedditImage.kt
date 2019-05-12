@@ -4,10 +4,8 @@ import com.tiquionophist.reddit.Media
 import com.tiquionophist.reddit.MediaProvider
 import okhttp3.HttpUrl
 
-object Reddit : MediaProvider {
-    private val hosts = setOf("i.reddituploads.com")
-
-    override fun matches(url: HttpUrl) = hosts.contains(url.host())
+object RedditImage : MediaProvider {
+    override fun matches(url: HttpUrl) = url.host() == "i.reddituploads.com"
 
     override fun resolveMedia(metadata: Media.Metadata, url: HttpUrl): MediaProvider.Result {
         return MediaProvider.Result.Success(

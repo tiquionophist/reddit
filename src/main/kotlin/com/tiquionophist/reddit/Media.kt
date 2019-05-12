@@ -1,5 +1,6 @@
 package com.tiquionophist.reddit
 
+import net.dean.jraw.models.Submission
 import okhttp3.HttpUrl
 import java.util.Date
 
@@ -10,7 +11,8 @@ sealed class Media {
         val date: Date?,
         val title: String?,
         val subreddit: String? = null,
-        val position: Int? = null
+        val position: Int? = null,
+        val submission: Submission? = null
     )
 
     abstract val metadata: Metadata

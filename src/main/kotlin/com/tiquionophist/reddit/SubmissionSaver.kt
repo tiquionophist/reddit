@@ -4,7 +4,8 @@ import com.tiquionophist.reddit.mediaproviders.Blacklist
 import com.tiquionophist.reddit.mediaproviders.DirectLink
 import com.tiquionophist.reddit.mediaproviders.Gfycat
 import com.tiquionophist.reddit.mediaproviders.Imgur
-import com.tiquionophist.reddit.mediaproviders.Reddit
+import com.tiquionophist.reddit.mediaproviders.RedditImage
+import com.tiquionophist.reddit.mediaproviders.RedditVideo
 import com.tiquionophist.reddit.network.DownloadBodyHandler
 import net.dean.jraw.models.Submission
 import okhttp3.HttpUrl
@@ -30,7 +31,8 @@ object SubmissionSaver {
     private val mediaProviders: List<MediaProvider> = listOf(
         Blacklist,
         DirectLink,
-        Reddit,
+        RedditImage,
+        RedditVideo,
         Imgur.Image,
         Imgur.Album,
         Gfycat

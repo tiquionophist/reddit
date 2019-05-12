@@ -47,7 +47,14 @@ fun RedditClient.followedUsers(): List<String> {
 }
 
 val Submission.metadata
-    get() = Media.Metadata(id = id, author = author, date = created, title = title, subreddit = subreddit)
+    get() = Media.Metadata(
+        id = id,
+        author = author,
+        date = created,
+        title = title,
+        subreddit = subreddit,
+        submission = this
+    )
 
 val Submission.redditUrl
     get() = "https://reddit.com$permalink"
