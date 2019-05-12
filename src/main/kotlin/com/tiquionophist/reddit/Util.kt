@@ -73,14 +73,14 @@ fun recursiveDelete(path: Path) {
 }
 
 private const val BYTE_SCALE = 1024
-private val BYTE_SCALE_LOG = Math.log(BYTE_SCALE.toDouble())
+private val byteScaleLog = Math.log(BYTE_SCALE.toDouble())
 
 /**
  * Creates a human-readable description of the given number of bytes, e.g. "42 B" or "7.4 MB"; base-2.
  */
 fun formatByteSize(bytes: Long): String {
     if (bytes < BYTE_SCALE) return "$bytes B"
-    val exp = (Math.log(bytes.toDouble()) / BYTE_SCALE_LOG).toInt()
+    val exp = (Math.log(bytes.toDouble()) / byteScaleLog).toInt()
     val prefix = "KMGTPE"[exp - 1]
     return String.format("%.1f %sB", bytes / Math.pow(BYTE_SCALE.toDouble(), exp.toDouble()), prefix)
 }
