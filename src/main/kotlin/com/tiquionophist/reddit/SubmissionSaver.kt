@@ -1,5 +1,10 @@
 package com.tiquionophist.reddit
 
+import com.tiquionophist.reddit.mediaproviders.Blacklist
+import com.tiquionophist.reddit.mediaproviders.DirectLink
+import com.tiquionophist.reddit.mediaproviders.Gfycat
+import com.tiquionophist.reddit.mediaproviders.Imgur
+import com.tiquionophist.reddit.mediaproviders.Reddit
 import com.tiquionophist.reddit.network.DownloadBodyHandler
 import net.dean.jraw.models.Submission
 import okhttp3.HttpUrl
@@ -21,6 +26,15 @@ object SubmissionSaver {
 
     private val httpClient = HttpClient.newHttpClient()
     private val localLocationResolver = LocalLocationResolver()
+
+    private val mediaProviders: List<MediaProvider> = listOf(
+        Blacklist,
+        DirectLink,
+        Reddit,
+        Imgur.Image,
+        Imgur.Album,
+        Gfycat
+    )
 
     fun saveSubmission(submission: Submission, source: MediaSource): Result {
         val url = HttpUrl.parse(submission.url)

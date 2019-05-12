@@ -12,6 +12,7 @@ import java.time.Duration
 // TODO go through comments for follow-up images, sources, etc
 // TODO add CI for tests, detekt, etc
 // TODO better logging (log files, levels, channels)
+// TODO https-only option?
 
 private val saved = linkedMapOf<Submission, SubmissionSaver.Result.Saved>()
 private val alreadySaved = linkedMapOf<Submission, SubmissionSaver.Result.AlreadySaved>()

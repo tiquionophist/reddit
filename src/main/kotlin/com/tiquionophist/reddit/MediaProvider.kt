@@ -1,10 +1,5 @@
 package com.tiquionophist.reddit
 
-import com.tiquionophist.reddit.mediaproviders.Blacklist
-import com.tiquionophist.reddit.mediaproviders.DirectLink
-import com.tiquionophist.reddit.mediaproviders.Gfycat
-import com.tiquionophist.reddit.mediaproviders.Imgur
-import com.tiquionophist.reddit.mediaproviders.Reddit
 import okhttp3.HttpUrl
 
 interface MediaProvider {
@@ -19,13 +14,3 @@ interface MediaProvider {
 
     fun resolveMedia(metadata: Media.Metadata, url: HttpUrl): Result
 }
-
-// TODO move this somewhere else
-val mediaProviders: List<MediaProvider> = listOf(
-    Blacklist,
-    DirectLink,
-    Reddit,
-    Imgur.Image,
-    Imgur.Album,
-    Gfycat
-)
