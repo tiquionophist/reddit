@@ -22,6 +22,11 @@ sealed class Media {
         val urls: List<HttpUrl>
     ) : Media()
 
+    data class Video(
+        override val metadata: Metadata,
+        val url: HttpUrl
+    ) : Media()
+
     data class Album(
         override val metadata: Metadata,
         val children: List<Media>

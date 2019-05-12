@@ -19,7 +19,7 @@ data class LocalLocation(
  */
 class LocalLocationResolver(
     root: Path = Path.of(System.getProperty("user.home"), "Pictures", "Reddit Downloads"),
-    isWindows: Boolean = System.getProperty("os.name").startsWith("Windows")
+    isWindows: Boolean = isWindows()
 ) {
     private val usersDir = root.resolve("users")
     private val subredditsDir = root.resolve("subreddits")

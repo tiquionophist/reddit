@@ -19,7 +19,7 @@ import java.util.concurrent.Flow
  */
 class DownloadBodyHandler(private val path: Path) : HttpResponse.BodyHandler<DownloadBodyHandler.Result> {
     sealed class Result {
-        class Success(val path: Path, val extension: String, val bytes: Long) : Result()
+        class Success(val extension: String, val bytes: Long) : Result()
         object NotFound : Result()
         class Redirect(val location: String) : Result()
         class UnknownContentType(val contentType: String?) : Result()
@@ -32,7 +32,7 @@ class DownloadBodyHandler(private val path: Path) : HttpResponse.BodyHandler<Dow
             HttpStatusCase.SUCCESS -> {
                 val contentType = responseInfo.headers().firstValue("content-type").orElse(null)
                 contentTypes[contentType]?.let { extension ->
-                    DownloadSubscriber(path = path.withExtension(extension), extension = extension)
+                    DownloadSubscriber(path = path, extension = extension)
                 } ?: CompletedSubscriber(Result.UnknownContentType(contentType))
             }
             HttpStatusCase.REDIRECT -> {
@@ -56,7 +56,11 @@ class DownloadBodyHandler(private val path: Path) : HttpResponse.BodyHandler<Dow
         override fun onSubscribe(subscription: Flow.Subscription) {
             this.subscription = subscription
             try {
-                out = FileChannel.open(path, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)
+                out = FileChannel.open(
+                    path.withExtension(extension),
+                    StandardOpenOption.CREATE_NEW,
+                    StandardOpenOption.WRITE
+                )
             } catch (ex: IOException) {
                 future.completeExceptionally(ex)
                 subscription.cancel()
@@ -83,7 +87,7 @@ class DownloadBodyHandler(private val path: Path) : HttpResponse.BodyHandler<Dow
 
         override fun onComplete() {
             runCatching { out.close() }
-            future.complete(Result.Success(path = path, extension = extension, bytes = totalBytes))
+            future.complete(Result.Success(extension = extension, bytes = totalBytes))
         }
 
         override fun getBody() = future
@@ -112,6 +116,8 @@ class DownloadBodyHandler(private val path: Path) : HttpResponse.BodyHandler<Dow
             "image/*" to ".jpg"
         )
 
+        // TODO there is the possibility of files downloaded by YoutubeDl having a different extension
+        // this would cause them not to be found as already downloaded, and then either fail or re-download
         val extensions = contentTypes.values.toSet()
     }
 }

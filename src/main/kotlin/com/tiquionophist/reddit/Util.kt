@@ -84,3 +84,8 @@ fun formatByteSize(bytes: Long): String {
     val prefix = "KMGTPE"[exp - 1]
     return String.format("%.1f %sB", bytes / Math.pow(BYTE_SCALE.toDouble(), exp.toDouble()), prefix)
 }
+
+/**
+ * Determines whether the current operating system is in the Windows family.
+ */
+fun isWindows() = System.getProperty("os.name").startsWith("Windows")

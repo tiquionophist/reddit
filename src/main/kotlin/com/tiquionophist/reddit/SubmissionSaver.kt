@@ -6,6 +6,7 @@ import com.tiquionophist.reddit.mediaproviders.Gfycat
 import com.tiquionophist.reddit.mediaproviders.Imgur
 import com.tiquionophist.reddit.mediaproviders.RedditImage
 import com.tiquionophist.reddit.mediaproviders.RedditVideo
+import com.tiquionophist.reddit.mediaproviders.Youtube
 import com.tiquionophist.reddit.network.DownloadBodyHandler
 import net.dean.jraw.models.Submission
 import okhttp3.HttpUrl
@@ -35,7 +36,8 @@ object SubmissionSaver {
         RedditVideo,
         Imgur.Image,
         Imgur.Album,
-        Gfycat
+        Gfycat,
+        Youtube
     )
 
     fun saveSubmission(submission: Submission, source: MediaSource): Result {
@@ -87,6 +89,7 @@ object SubmissionSaver {
     private fun saveMedia(media: Media, local: LocalLocation): Result {
         return when (media) {
             is Media.File -> saveFile(file = media, local = local)
+            is Media.Video -> saveVideo(video = media, local = local)
             is Media.Album ->
                 if (Config.explodeSingletonAlbums && media.children.size == 1) {
                     val first = media.children.first()
@@ -115,13 +118,14 @@ object SubmissionSaver {
             // TODO consider sending async
             when (val result = httpClient.send(request, DownloadBodyHandler(local.primary)).body()) {
                 is DownloadBodyHandler.Result.Success -> {
+                    val pathWithExtension = local.primary.withExtension(result.extension)
                     try {
-                        linkSecondaries(result, local)
+                        linkSecondaries(local = local, extension = result.extension)
                     } catch (ex: IOException) {
-                        return Result.Failure(message = "Unable to create link to ${result.path}", cause = ex)
+                        return Result.Failure(message = "Unable to create link to $pathWithExtension", cause = ex)
                     }
 
-                    return Result.Saved(path = result.path, bytes = result.bytes)
+                    return Result.Saved(path = pathWithExtension, bytes = result.bytes)
                 }
                 is DownloadBodyHandler.Result.NotFound -> Result.NotFound
                 is DownloadBodyHandler.Result.Redirect ->
@@ -144,6 +148,28 @@ object SubmissionSaver {
             results.size == 1 -> results.values.first()
             results.all { it.value is Result.NotFound } -> Result.NotFound
             else -> Result.Failure(message = "Unable to fetch any of the media urls: $results")
+        }
+    }
+
+    private fun saveVideo(video: Media.Video, local: LocalLocation): Result {
+        if (!YoutubeDl.isInstalled) {
+            return Result.Failure("Unable to find youtube-dl")
+        }
+
+        val result = YoutubeDl.download(url = video.url, filename = local.primary.toString())
+
+        return when (result) {
+            is YoutubeDl.Result.Success -> {
+                val pathWithExtension = local.primary.withExtension(result.extension)
+                try {
+                    linkSecondaries(local = local, extension = result.extension)
+                } catch (ex: IOException) {
+                    return Result.Failure(message = "Unable to create link to $pathWithExtension", cause = ex)
+                }
+
+                Result.Saved(path = pathWithExtension, bytes = result.bytes)
+            }
+            is YoutubeDl.Result.Failure -> Result.NotFound
         }
     }
 
@@ -179,15 +205,16 @@ object SubmissionSaver {
         return Result.Saved(path = local.primary, bytes = totalBytes)
     }
 
-    private fun linkSecondaries(result: DownloadBodyHandler.Result.Success, local: LocalLocation) {
-        local.secondaries.forEach { path ->
+    private fun linkSecondaries(local: LocalLocation, extension: String) {
+        val primaryWithExtension = local.primary.withExtension(extension)
+        local.secondaries.forEach { secondary ->
             // TODO avoid attempting to create the directory for every submission
             try {
-                Files.createDirectories(path.parent)
+                Files.createDirectories(secondary.parent)
             } catch (ex: IOException) {
                 try {
-                    Files.deleteIfExists(local.primary)
-                    local.secondaries.forEach { Files.deleteIfExists(it) }
+                    Files.deleteIfExists(primaryWithExtension)
+                    local.secondaries.forEach { Files.deleteIfExists(it.withExtension(extension)) }
                 } catch (ex: IOException) {
                     println("[ERROR] Unable to clean up partially saved file, disk state corrupted for $local")
                 }
@@ -195,18 +222,18 @@ object SubmissionSaver {
                 throw ex
             }
 
-            val pathWithExtension = path.withExtension(result.extension)
+            val secondaryWithExtension = secondary.withExtension(extension)
 
             // the link might already exist if the same post was downloaded from multiple places, e.g. both a followed
             // user and a saved post, or if the user deleted the primary file but not secondaries
             // TODO this is an opportunity to consolidate hard links to save disk space
-            if (!Files.exists(pathWithExtension)) {
+            if (!Files.exists(secondaryWithExtension)) {
                 try {
-                    Files.createLink(pathWithExtension, result.path)
+                    Files.createLink(secondaryWithExtension, primaryWithExtension)
                 } catch (ex: IOException) {
                     try {
-                        Files.deleteIfExists(local.primary)
-                        local.secondaries.forEach { Files.deleteIfExists(it) }
+                        Files.deleteIfExists(primaryWithExtension)
+                        local.secondaries.forEach { Files.deleteIfExists(it.withExtension(extension)) }
                     } catch (ex: IOException) {
                         println("[ERROR] Unable to clean up partially saved file, disk state corrupted for $local")
                     }
