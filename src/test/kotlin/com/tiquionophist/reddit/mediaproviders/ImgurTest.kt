@@ -10,6 +10,7 @@ internal class ImgurTest {
     fun testImageMatches() {
         urls.permute(validIds).forEach { Imgur.Image.assertMatches(it) }
         urls.permute(validIds.map { "a/$it" }).forEach { Imgur.Image.assertDoesNotMatch(it) }
+        urls.permute(validIds.map { "gallery/$it" }).forEach { Imgur.Image.assertDoesNotMatch(it) }
         urls.permute(invalidPaths).forEach { Imgur.Image.assertDoesNotMatch(it) }
     }
 
@@ -17,6 +18,7 @@ internal class ImgurTest {
     fun testAlbumMatches() {
         urls.permute(validIds).forEach { Imgur.Album.assertDoesNotMatch(it) }
         urls.permute(validIds.map { "a/$it" }).forEach { Imgur.Album.assertMatches(it) }
+        urls.permute(validIds.map { "gallery/$it" }).forEach { Imgur.Album.assertMatches(it) }
         urls.permute(invalidPaths).forEach { Imgur.Album.assertDoesNotMatch(it) }
     }
 

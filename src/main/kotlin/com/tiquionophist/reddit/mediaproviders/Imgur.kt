@@ -52,7 +52,7 @@ object Imgur : RestApi() {
             if (!url.isImgurUrl()) return false
 
             return url.pathSegments().satisfies(
-                { it == "a" },
+                { it == "a" || it == "gallery" },
                 { hashRegex.matches(it.orEmpty()) },
                 { it.isNullOrEmpty() }
             )
