@@ -36,9 +36,9 @@ class LocalLocationResolver(
         return this
             .replace(invalidFilenameRegex, "_")
             .replace(whitespaceRegex, " ")
+            .take(filenameMaxLength)
             .trimStart()
             .trimEnd { it == '.' || it.isWhitespace() } // directories with trailing periods are messed up
-            .take(filenameMaxLength)
     }
 
     private fun Media.Metadata.filename(author: String? = null): String {
