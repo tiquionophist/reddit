@@ -46,8 +46,6 @@ fun main() {
                 .sorting(UserHistorySort.TOP)
                 .timePeriod(TimePeriod.ALL)
                 .build()
-                .first() // TODO temporary limit (not using take() since it eagerly loads the next listing as well)
-                .let { listOf(it) }
                 .save(MediaSource.FOLLOWED_USER)
         }
     }
