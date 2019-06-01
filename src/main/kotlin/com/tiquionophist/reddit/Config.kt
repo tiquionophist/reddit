@@ -11,6 +11,7 @@ object Config {
     private val settings = Properties()
     private val secrets = Properties()
     private var ignoredDomains: List<String> = emptyList()
+    private var additionalUsers: List<String> = emptyList()
 
     val followedUsers by lazy { getBooleanSetting("followedUsers") }
     val savedPosts by lazy { getBooleanSetting("savedPosts") }
@@ -43,6 +44,14 @@ object Config {
         } catch (ex: IOException) {
             println("Failed to load ignored list: ${ex.message}")
         }
+
+        try {
+            additionalUsers = Files.readAllLines(Path.of("config/additional_users.txt"))
+                .map { it.trim() }
+                .filter { it.isNotEmpty() && it.first() != '#' }
+        } catch (ex: IOException) {
+            println("Failed to load additional users list: ${ex.message}")
+        }
     }
 
     private fun getBooleanSetting(name: String, default: Boolean = true): Boolean {
@@ -56,4 +65,6 @@ object Config {
     fun getSecret(name: String): String? = secrets.getProperty(name)
 
     fun isIgnored(domain: String) = ignoredDomains.contains(domain)
+
+    fun getAdditionalUsers() = additionalUsers
 }

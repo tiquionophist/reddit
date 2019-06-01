@@ -37,7 +37,7 @@ fun main() {
     }
 
     if (Config.followedUsers) {
-        val followedUsers = reddit.followedUsers()
+        val followedUsers = reddit.followedUsers().plus(Config.getAdditionalUsers())
         followedUsers.forEachIndexed { userIndex, username ->
             println("Downloading posts by $username [${userIndex + 1} / ${followedUsers.size}]")
             reddit.user(username)
