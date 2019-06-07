@@ -80,6 +80,7 @@ private fun Iterable<Listing<*>>.save(source: MediaSource) {
         MediaSource.FOLLOWED_USER -> Config.scoreThresholdFollowedUser
     }
 
+    // TODO the forEachIndexed throws an exception if reddit is down/returns a non-200 for the listing query
     forEachIndexed { listingIndex, listing ->
         val submissions = listing.children
             .filterIsInstance(Submission::class.java)
