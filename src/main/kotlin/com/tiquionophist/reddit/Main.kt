@@ -28,7 +28,7 @@ fun main() {
     Config.load()
 
     if (Config.savedPosts) {
-        println("Downloading saved posts")
+        println("Downloading ${AnsiColor.BLUE.color("saved posts")}")
         reddit.me()
             .history("saved")
             .limit(Paginator.RECOMMENDED_MAX_LIMIT)
@@ -39,7 +39,7 @@ fun main() {
     if (Config.followedUsers) {
         val followedUsers = reddit.followedUsers().plus(Config.getAdditionalUsers())
         followedUsers.forEachIndexed { userIndex, username ->
-            println("Downloading posts by $username [${userIndex + 1} / ${followedUsers.size}]")
+            println("Downloading posts by ${AnsiColor.BLUE.color(username)} [${userIndex + 1} / ${followedUsers.size}]")
             reddit.user(username)
                 .history("submitted")
                 .limit(Paginator.RECOMMENDED_MAX_LIMIT)
@@ -94,7 +94,7 @@ private fun Iterable<Listing<*>>.save(source: MediaSource) {
             when (result) {
                 is SubmissionSaver.Result.Saved -> {
                     saved[submission] = result
-                    println("    Saved ${submission.redditUrl} to ${result.path}")
+                    println("    ${AnsiColor.GREEN.color("Saved")} ${submission.redditUrl} to ${result.path}")
                 }
                 is SubmissionSaver.Result.AlreadySaved -> alreadySaved[submission] = result
                 is SubmissionSaver.Result.Ignored -> ignored[submission] = result
@@ -102,7 +102,10 @@ private fun Iterable<Listing<*>>.save(source: MediaSource) {
                 is SubmissionSaver.Result.NotMatched -> notMatched[submission] = result
                 is SubmissionSaver.Result.Failure -> {
                     failures[submission] = result
-                    println("    [WARN] Unable to save ${submission.redditUrl} : ${result.message}")
+                    println(
+                        "    ${AnsiColor.RED.color("[WARN]")} Unable to save " +
+                                "${submission.redditUrl} : ${result.message}"
+                    )
                 }
             }
         }
